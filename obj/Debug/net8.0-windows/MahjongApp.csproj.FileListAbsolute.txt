@@ -31,3 +31,13 @@ C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongGame\MahjongApp\obj\Debug\net8.
 C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongGame\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.pdb
 C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongGame\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.genruntimeconfig.cache
 C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongGame\MahjongApp\obj\Debug\net8.0-windows\ref\MahjongApp.dll
+C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.MainForm.resources
+C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.csproj.GenerateResource.cache
+C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.AssemblyInfoInputs.cache
+C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.AssemblyInfo.cs
+C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.csproj.CoreCompileInputs.cache
+C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.sourcelink.json
+C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.dll
+C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\obj\Debug\net8.0-windows\refint\MahjongApp.dll
+C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.pdb

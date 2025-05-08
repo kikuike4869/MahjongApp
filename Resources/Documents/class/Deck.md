@@ -1,4 +1,4 @@
-## 🧱 `TileWall` クラス設計
+## 🧱 `Deck` クラス設計
 
 ### 📌 役割（責務）
 
@@ -13,7 +13,7 @@
 ### 🧾 プロパティ（メンバ変数）
 
 ```csharp
-class TileWall
+class Deck
 {
     private List<Tile> allTiles;            // シャッフル済み136枚の山
     private Queue<Tile> liveWall;           // 通常のツモ山（最初の122枚）
