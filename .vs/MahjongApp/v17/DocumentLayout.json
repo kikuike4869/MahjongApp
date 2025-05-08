@@ -1,0 +1,52 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\kikuike\\Dropbox\\VisualStudio2022\\MahjongGame\\MahjongApp\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{822F2DA1-AD88-4E88-A181-B1834FB19B84}|MahjongApp.csproj|c:\\users\\kikuike\\dropbox\\visualstudio2022\\mahjonggame\\mahjongapp\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{822F2DA1-AD88-4E88-A181-B1834FB19B84}|MahjongApp.csproj|solutionrelative:form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{822F2DA1-AD88-4E88-A181-B1834FB19B84}|MahjongApp.csproj|C:\\Users\\kikuike\\Dropbox\\VisualStudio2022\\MahjongGame\\MahjongApp\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{822F2DA1-AD88-4E88-A181-B1834FB19B84}|MahjongApp.csproj|solutionrelative:form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Form1.cs",
+              "DocumentMoniker": "C:\\Users\\kikuike\\Dropbox\\VisualStudio2022\\MahjongGame\\MahjongApp\\Form1.cs",
+              "RelativeDocumentMoniker": "Form1.cs",
+              "ToolTip": "C:\\Users\\kikuike\\Dropbox\\VisualStudio2022\\MahjongGame\\MahjongApp\\Form1.cs",
+              "RelativeToolTip": "Form1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-08T12:04:04.945Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Form1.cs [\u30C7\u30B6\u30A4\u30F3]",
+              "DocumentMoniker": "C:\\Users\\kikuike\\Dropbox\\VisualStudio2022\\MahjongGame\\MahjongApp\\Form1.cs",
+              "RelativeDocumentMoniker": "Form1.cs",
+              "ToolTip": "C:\\Users\\kikuike\\source\\repos\\MahjongApp\\Form1.cs [\u30C7\u30B6\u30A4\u30F3]",
+              "RelativeToolTip": "..\\..\\..\\..\\source\\repos\\MahjongApp\\Form1.cs [\u30C7\u30B6\u30A4\u30F3]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-08T12:03:46.516Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
