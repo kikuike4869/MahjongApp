@@ -49,8 +49,6 @@ namespace MahjongApp
         // }
     }
 
-    enum MeldType { Chi, Pon, Kan, Ankan, Shouminkan }
-
     class Meld
     {
         public MeldType Type { get; set; }

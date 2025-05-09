@@ -28,10 +28,11 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.Text = "麻雀アプリ";
+            this.ClientSize = Config.Instance.ScreenSize;
             this.components = new System.ComponentModel.Container();
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 450);
-            this.Text = "MainForm";
+            this.BackColor = Color.Green;
+            // this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
         }
 
         #endregion

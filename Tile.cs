@@ -2,14 +2,6 @@ using System.Net.Security;
 
 namespace MahjongApp
 {
-    public enum Suit
-    {
-        Manzu,  // 萬子
-        Pinzu,  // 筒子
-        Souzu,  // 索子
-        Honor   // 字牌（東南西北白發中）
-    }
-
     public class Tile
     {
         public Suit Suit { get; private set; }
