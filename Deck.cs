@@ -38,25 +38,25 @@ namespace MahjongApp
                 for (int number = 1; number <= 9; number++)
                 {
                     int copies_num = (number == 5) ? 3 : 4;
-                    for (int i = 0; i < copies_num; i++)
+                    for (int index = 0; index < copies_num; index++)
                     {
-                        Tiles.Add(new Tile(suit, number));
+                        Tiles.Add(new Tile(suit, number, index));
                     }
                 }
             }
 
-            for (int i = 1; i <= 7; i++)
+            for (int number = 1; number <= 7; number++)
             {
-                for (int j = 0; j < 4; j++)
+                for (int index = 0; index < 4; index++)
                 {
-                    Tiles.Add(new Tile(Suit.Honor, i));
+                    Tiles.Add(new Tile(Suit.Honor, number, index));
                 }
             }
 
             // Add red fives (Man5r, Pin5r, Sou5r)
-            Tiles.Add(new Tile(Suit.Manzu, 5, true));
-            Tiles.Add(new Tile(Suit.Pinzu, 5, true));
-            Tiles.Add(new Tile(Suit.Souzu, 5, true));
+            Tiles.Add(new Tile(Suit.Manzu, 5, 3, true));
+            Tiles.Add(new Tile(Suit.Pinzu, 5, 3, true));
+            Tiles.Add(new Tile(Suit.Souzu, 5, 3, true));
         }
 
         public void Shuffle()
@@ -123,7 +123,7 @@ namespace MahjongApp
                 nextTileNumber = tile.Number == 9 ? 1 : tile.Number + 1;
             }
 
-            return new Tile(nextTileSuit, nextTileNumber);
+            return new Tile(nextTileSuit, nextTileNumber, tile.Index);
         }
 
         private void SetWanPie()

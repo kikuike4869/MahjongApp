@@ -25,8 +25,6 @@ namespace MahjongApp
             int tileWidth = 60;
             int tileHeight = 80; 
 
-            // this.ClientSize = new Size(tileWidth * hand.Count, tileHeight);
-
             for (int i = 0; i < hand.Count; i++)
             {
                 Tile tile = hand[i];
@@ -39,7 +37,7 @@ namespace MahjongApp
                     BorderStyle = BorderStyle.FixedSingle,
                 };
 
-                tilePictureBox.RegisterObserver(new TileClickLogger(tile.ToString()));
+                tilePictureBox.RegisterObserver(new TileClickLogger(tile.Name()));
 
                 Controls.Add(tilePictureBox);
             }
