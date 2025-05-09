@@ -6,6 +6,8 @@ namespace MahjongApp
         private static readonly Lazy<Config> instance = new Lazy<Config>(() => new Config());
 
         public Size ScreenSize { get; set; }
+        public int NumberOfPlayers { get; set; }
+        public int NumberOfFirstHands { get; set; }
 
         public static Config Instance
         {
@@ -21,6 +23,9 @@ namespace MahjongApp
             int height = 920;
 
             ScreenSize = new Size(width, height);
+            NumberOfPlayers = 4;
+            NumberOfFirstHands = 13;
+
         }
     }
 }

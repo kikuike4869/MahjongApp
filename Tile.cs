@@ -1,5 +1,3 @@
-using System.Net.Security;
-
 namespace MahjongApp
 {
     public class Tile
@@ -14,9 +12,23 @@ namespace MahjongApp
             Number = number;
             IsRed = isRed;
         }
+
         public override string ToString()
         {
             return $"{Suit}_{Number}{(IsRed ? "_red" : "")}";
+        }
+
+        public Image GetImage()
+        {
+            string filePath = $"Resources/Tiles/{ToString()}.png";
+            if (System.IO.File.Exists(filePath))
+            {
+                return Image.FromFile(filePath);
+            }
+            else
+            {
+                throw new FileNotFoundException($"Image file not found: {filePath}");
+            }
         }
     }
 }

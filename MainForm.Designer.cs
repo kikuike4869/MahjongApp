@@ -1,4 +1,6 @@
-﻿namespace MahjongApp
+﻿using System.Runtime.InteropServices;
+
+namespace MahjongApp
 {
     partial class MainForm
     {

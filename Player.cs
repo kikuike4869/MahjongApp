@@ -17,7 +17,10 @@ namespace MahjongApp
 
         public bool IsHuman { get; protected set; } = false;
 
-        // public void Draw(Tile tile);                  // ツモ
+        public void Draw(Tile tile)
+        {
+            Hand.Add(tile);
+        }
         // public virtual Tile ChooseDiscard();          // 捨てる牌を選ぶ
         // public void Discard(Tile tile);               // 捨てる処理
         // public void DeclareRiichi();                  // リーチ宣言
