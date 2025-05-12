@@ -48,7 +48,6 @@ namespace MahjongApp
                     Image = tile.GetImage(),
                     Size = new Size(tileWidth, tileHeight),
                     Location = new Point(startX + i * tileWidth + drawnTileOffset, startY - selectedOffset),
-                    BorderStyle = BorderStyle.FixedSingle,
                 };
 
                 tilePictureBox.RegisterObserver(new TileClickLogger(player, i, RefreshHandDisplay, gameManager));

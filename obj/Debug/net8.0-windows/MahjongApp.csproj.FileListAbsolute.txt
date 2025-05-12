@@ -58,3 +58,10 @@ C:\Users\12811096\Documents\work\MahjongApp\obj\Debug\net8.0-windows\refint\Mahj
 C:\Users\12811096\Documents\work\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.pdb
 C:\Users\12811096\Documents\work\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.genruntimeconfig.cache
 C:\Users\12811096\Documents\work\MahjongApp\obj\Debug\net8.0-windows\ref\MahjongApp.dll
+C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\bin\Debug\net8.0-windows\MahjongApp.exe
+C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\bin\Debug\net8.0-windows\MahjongApp.deps.json
+C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\bin\Debug\net8.0-windows\MahjongApp.runtimeconfig.json
+C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\bin\Debug\net8.0-windows\MahjongApp.dll
+C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\bin\Debug\net8.0-windows\MahjongApp.pdb
+C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.genruntimeconfig.cache
+C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\obj\Debug\net8.0-windows\ref\MahjongApp.dll
