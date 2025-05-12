@@ -1,3 +1,8 @@
+using System; // Added for Action
+using System.Collections.Generic; // Added for List
+using System.Diagnostics; // Added for Debug.WriteLine
+using System.Threading.Tasks; // Added for potential async operations
+
 namespace MahjongApp
 {
     class TurnManager
@@ -7,125 +12,210 @@ namespace MahjongApp
 
         private List<Player> Players;
         private Deck Deck;
-        private CallManager SallMgr;
+        private CallManager CallMgr; // Renamed from SallMgr for clarity
         private ScoreManager ScoreMgr;
 
         private int TurnCount;                     // 累積手番数（流局判定用）
+        public Tile? LastDiscardedTile { get; private set; } // Track the last discarded tile for calls
+
+        // Callback for UI updates
+        private Action? RefreshHandDisplayCallback = null;
+        // Callback to signal completion of human discard (used by GameManager)
+        // private Action OnHumanDiscardCompleted = null; // This notification now happens via GameManager method
 
         public TurnManager(List<Player> players, Deck deck, CallManager callMgr, ScoreManager scoreMgr, int dealerSeat)
         {
             this.Players = players;
             this.Deck = deck;
-            this.SallMgr = callMgr;
+            this.CallMgr = callMgr; // Use renamed variable
             this.ScoreMgr = scoreMgr;
             this.DealerSeat = dealerSeat;
+            this.CurrentTurnSeat = dealerSeat; // Start with the dealer
         }
 
+        /// <summary>
+        /// 新しいラウンドを開始し、配牌を行います。
+        /// </summary>
         public void StartNewRound()
         {
-            Console.WriteLine("Start New Round");
-
+            Debug.WriteLine("[Turn] Starting New Round");
             TurnCount = 0;
-            CurrentTurnSeat = DealerSeat;
+            CurrentTurnSeat = DealerSeat; // Reset turn to dealer
+            LastDiscardedTile = null;
 
+            Deck.InitializeDeck(); // Initialize and shuffle the deck
 
+            // Initial draw (Haipai)
+            // Assuming Config class or constant defines initial hand size
+            int initialHandSize = 13; // Standard initial hand size
             foreach (Player player in Players)
             {
-                for (int i = 0; i < Config.Instance.NumberOfFirstHands; i++)
-                    player.Draw(Deck.Draw());
-            }
+                player.Hand.Clear(); // Clear previous hand
+                player.Discards.Clear();
+                player.Melds.Clear();
+                player.IsRiichi = false; // Reset status flags
+                player.IsTsumo = false;
+                // player.HasDeclaredRiichi = false; // Reset if using this flag
 
-            foreach (Player player in Players)
-            {
+                for (int i = 0; i < initialHandSize; i++)
+                {
+                    if (Deck.Count > 0)
+                        player.Draw(Deck.Draw()); // Use player's Draw method
+                    else
+                         Debug.WriteLine("[ERROR] Deck empty during initial draw!"); // Handle error
+                }
+                player.IsTsumo = false; // Not in Tsumo state after initial draw
                 player.SortHand();
             }
 
-            StartTurn();
+            Debug.WriteLine("[Turn] Initial hands dealt.");
+            // Don't call StartTurn here, GameManager controls the flow starting with the dealer's turn.
         }
 
+        /// <summary>
+        /// 現在のプレイヤーのターンを開始し、牌を1枚ツモります。
+        /// </summary>
         public void StartTurn()
         {
-            Console.WriteLine($"[DEBUG] TurnManager: StartTurn() called for CurrentTurnSeat: {CurrentTurnSeat}");
-            Console.WriteLine($"Deck Count: {Deck.Count}");
+            Debug.WriteLine($"[Turn] StartTurn() called for Player {CurrentTurnSeat}. Deck: {Deck.Count}");
+
             if (Deck.Count == 0)
             {
-                Console.WriteLine("[DEBUG] TurnManager: Deck is empty, calling EndRound.");
-                EndRound();
+                Debug.WriteLine("[Turn] Deck is empty, cannot draw. Triggering EndRound.");
+                EndRound(); // Or trigger draw condition check
                 return;
             }
 
             Player currentPlayer = Players[CurrentTurnSeat];
-            currentPlayer.IsTsumo = true;
-            Tile drawn = Deck.Draw();
-            currentPlayer.Draw(drawn);
-            RefreshHandDisplay?.Invoke();
+            Tile drawnTile = Deck.Draw();
+            currentPlayer.Draw(drawnTile); // Player's Draw method sets IsTsumo = true
+            Debug.WriteLine($"[Turn] Player {CurrentTurnSeat} drew: {drawnTile.Name()}");
+            // RefreshHandDisplayCallback?.Invoke(); // GameManager triggers refresh after StartTurn
 
-            // if (currentPlayer.CanTsumo())
-            // {
-            //     ExecuteWin(currentPlayer, null, drawn, true);
-            //     return;
-            // }
-
-            // if (currentPlayer.CanDeclareKan())
-            // {
-            //     // プレイヤーがカン宣言するかどうかの判断が必要
-            // }
+            // --- Check for self-actions after draw ---
+            // Check Tsumo win condition here
+            // Check self-Kan (Ankan, Kakan) options here
+            // bool canTsumo = CheckWinCondition(currentPlayer, drawnTile, true);
+            // if (canTsumo) { /* Trigger win handling in GameManager */ return; }
+            // List<KanOption> kanOptions = CheckSelfKanOptions(currentPlayer, drawnTile);
+            // if (kanOptions.Count > 0) { /* Present options or auto-declare based on AI/settings */ }
 
         }
 
+        /// <summary>
+        /// AIプレイヤーに打牌を選択させ、実行します。
+        /// </summary>
+        public void DiscardByAI()
+        {
+             Player currentPlayer = Players[CurrentTurnSeat];
+             if (currentPlayer.IsHuman || currentPlayer.Hand.Count == 0)
+             {
+                 Debug.WriteLine($"[Turn ERROR] DiscardByAI called for Human or empty hand.");
+                 return; // Should not happen
+             }
+
+             // 1. AI chooses a tile
+             Tile? tileToDiscard = currentPlayer.ChooseDiscardTile();
+
+             if (tileToDiscard != null)
+             {
+                 Debug.WriteLine($"[Turn] AI Player {CurrentTurnSeat} chose to discard: {tileToDiscard.Name()}");
+                 // 2. Execute the discard
+                 DiscardTile(currentPlayer, tileToDiscard);
+             }
+             else
+             {
+                  Debug.WriteLine($"[Turn ERROR] AI Player {CurrentTurnSeat} failed to choose a discard tile.");
+                  // Handle error - maybe discard last drawn tile?
+                  if (currentPlayer.Hand.Count > 0)
+                  {
+                      DiscardTile(currentPlayer, currentPlayer.Hand.LastOrDefault()); // Fallback
+                  }
+             }
+        }
+
+        /// <summary>
+        /// 指定されたプレイヤーが指定された牌を捨てます。
+        /// </summary>
+        /// <param name="player">打牌するプレイヤー。</param>
+        /// <param name="tileToDiscard">捨てる牌。</param>
+        public void DiscardTile(Player player, Tile? tileToDiscard)
+        {
+             if (player == null || tileToDiscard == null) return;
+
+             player.DiscardTile(tileToDiscard); // Use Player's method to update hand/discards
+             LastDiscardedTile = tileToDiscard; // Track the discarded tile
+             Debug.WriteLine($"[Turn] Player {player.SeatIndex} discarded: {LastDiscardedTile.Name()}");
+
+             // Check for Ron after discard? (Logic for other players)
+             // CheckCalls(LastDiscardedTile); // GameManager might handle this phase transition
+        }
+
+
+        /// <summary>
+        /// 次のプレイヤーにターンを移します。
+        /// </summary>
         public void NextTurn()
         {
-            Console.WriteLine($"[DEBUG] TurnManager: NextTurn() called. CurrentTurnSeat BEFORE: {CurrentTurnSeat}");
-            Players[CurrentTurnSeat].IsTsumo = false;
-            CurrentTurnSeat = (CurrentTurnSeat + 1) % Config.Instance.NumberOfPlayers;
-            Console.WriteLine($"[DEBUG] TurnManager: NextTurn() finished. CurrentTurnSeat AFTER: {CurrentTurnSeat}");
+            Debug.WriteLine($"[Turn] NextTurn() called. CurrentTurnSeat BEFORE: {CurrentTurnSeat}");
+            if (Players.Count > 0) // Prevent division by zero/modulo error
+            {
+                Players[CurrentTurnSeat].IsTsumo = false; // Reset Tsumo state for the player whose turn just ended
+                CurrentTurnSeat = (CurrentTurnSeat + 1) % Players.Count;
+                 TurnCount++; // Increment turn count
+                LastDiscardedTile = null; // Reset last discard for the new turn
+                Debug.WriteLine($"[Turn] NextTurn() finished. CurrentTurnSeat AFTER: {CurrentTurnSeat}, TurnCount: {TurnCount}");
+            }
         }
-        // public void ProceedAfterDiscard(Tile discardedTile); // 打牌後の鳴きチェックと次手番へ
-
-        // public void ExecuteCall(Player caller, CallType callType, List<Tile> tilesUsed); // チー・ポン・カン処理
-        // public void ExecuteWin(Player winner, Player loser, Tile winTile, bool isTsumo); // 和了処理
-
-        // public bool CheckDraw();                        // 山切れ or 九種九牌等
 
         public void EndRound()
         {
-            Console.WriteLine("End Round");
+            Debug.WriteLine("[Turn] End Round triggered.");
+            // Determine if win, draw (exhaustive, abortive), etc.
+            // Calculate scores via ScoreManager
+            // Update Honba/Riichi sticks
+            // Determine next dealer
+            // Reset state for next round or trigger game over
         }
+
+        /// <summary>
+        /// 現在が人間プレイヤーのターンかどうかを返します。
+        /// </summary>
         public bool IsHumanTurn()
         {
-            Console.WriteLine($"CurrentTurnSeat: {CurrentTurnSeat}, IsHuman: {Players[CurrentTurnSeat].IsHuman}");
-            return Players[CurrentTurnSeat].IsHuman;
+            if (Players.Count > CurrentTurnSeat && CurrentTurnSeat >= 0)
+            {
+                 // Debug.WriteLine($"[Turn] Checking IsHumanTurn: Seat={CurrentTurnSeat}, IsHuman={Players[CurrentTurnSeat].IsHuman}");
+                return Players[CurrentTurnSeat].IsHuman;
+            }
+            return false; // Invalid state
         }
 
-        public void DiscardByAI()
-        {
-            Players[CurrentTurnSeat].DiscardTile();
-        }
 
-        Action? RefreshHandDisplay = null;
+        /// <summary>
+        /// UI更新用のコールバックを設定します。
+        /// </summary>
         public void SetUpdateUICallBack(Action refreshHandDisplay)
         {
-            RefreshHandDisplay = refreshHandDisplay;
+            RefreshHandDisplayCallback = refreshHandDisplay;
         }
 
-        private Action? OnHumanDiscard = null;
-        public void SetHumanPlayerDiscardCallback(Action onHumanDiscard)
-        {
-            OnHumanDiscard = onHumanDiscard;
-        }
-
-        public void NotifyHumanDiscard()
-        {
-            // Console.WriteLine("NotifyHumanDiscard called.");
-            Console.WriteLine("[DEBUG] TurnManager: NotifyHumanDiscard called. Invoking callback.");
-            OnHumanDiscard?.Invoke();
-            OnHumanDiscard = null;
-        }
+        // Removed SetHumanPlayerDiscardCallback and NotifyHumanDiscard
+        // GameManager now handles waiting for human input via its own mechanism
 
 
+        /// <summary>
+        /// 現在のターンプレイヤーの座席インデックスを取得します。
+        /// </summary>
         public int GetCurrentTurnSeat()
         {
             return CurrentTurnSeat;
         }
+
+        // --- Add methods for Game Logic ---
+        // public bool CheckWinCondition(Player player, Tile checkTile, bool isTsumo) { /* ... */ return false; }
+        // public List<KanOption> CheckSelfKanOptions(Player player, Tile drawnTile) { /* ... */ return new List<KanOption>(); }
+        // public async Task<bool> CheckCalls(Tile discardedTile) { /* Check Pon/Kan/Chi/Ron from others */ return false; }
+
     }
 }

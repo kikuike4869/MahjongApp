@@ -22,7 +22,8 @@ namespace MahjongApp
 
         private void DisplayPlayerHand()
         {
-            HumanPlayer player = gameManager.GetHumanPlayer();
+            HumanPlayer? player = gameManager.GetHumanPlayer();
+            if (player == null) { return; }
             List<Tile> hand = player.Hand;
             int tileWidth = 60;
             int tileHeight = 80;

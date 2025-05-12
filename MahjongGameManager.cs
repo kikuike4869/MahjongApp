@@ -1,3 +1,8 @@
+// MahjongGameManager.cs (修正後)
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq; // FirstOrDefaultのために追加
 using System.Threading.Tasks;
 
 namespace MahjongApp
@@ -11,151 +16,170 @@ namespace MahjongApp
         ScoreManager ScoreManager;
         public GamePhase CurrentPhase = GamePhase.InitRound;
 
-
-        int RoundNumber;
-        int HonbaCount;
-        int RiichiSticks;
+        // int RoundNumber;
+        // int HonbaCount;
+        // int RiichiSticks;
         int DealerIndex;
+
+        // Callback for UI updates
+        Action? RefreshHandDisplayCallback;
+        // Callback for enabling/disabling UI hand interaction
+        Action<bool>? EnableHandInteractionCallback; // <<< 追加
 
         public MahjongGameManager()
         {
             Deck = new Deck();
             Players = new List<Player>();
-
-            InitializGame();
+            InitializeGame();
             CallManager = new CallManager(Players, DealerIndex);
             ScoreManager = new ScoreManager();
-
             TurnManager = new TurnManager(Players, Deck, CallManager, ScoreManager, DealerIndex);
+            TurnManager.SetUpdateUICallBack(() => RefreshHandDisplayCallback?.Invoke());
         }
 
-        void InitializGame()
+        void InitializeGame()
         {
             DealerIndex = 0;
-
-            for (int i = 0; i < Config.Instance.NumberOfPlayers; i++)
+            int numPlayers = 4;
+            if (Players == null) Players = new List<Player>(numPlayers);
+            Players.Clear();
+            for (int i = 0; i < numPlayers; i++)
             {
-                if (i == 0)
-                    Players.Add(new HumanPlayer());
-                else
-                    Players.Add(new AIPlayer());
+                Player newPlayer;
+                if (i == 0) { newPlayer = new HumanPlayer { SeatIndex = i, Name = $"Player {i} (Human)" }; }
+                else { newPlayer = new AIPlayer { SeatIndex = i, Name = $"Player {i} (AI)" }; }
+                newPlayer.IsDealer = (i == DealerIndex);
+                Players.Add(newPlayer);
             }
+            Debug.WriteLine($"[Game] Initialized {Players.Count} players. Dealer is Player {DealerIndex}.");
         }
 
         public async Task StartGame()
         {
+            Debug.WriteLine("[Game] Starting game...");
+            CurrentPhase = GamePhase.InitRound;
             TurnManager.StartNewRound();
-            RefreshHandDisplay?.Invoke();
+            EnableHandInteractionCallback?.Invoke(false); // <<< 初期状態は操作不可
+            RefreshHandDisplayCallback?.Invoke();
 
-            while (Deck.Count > 0)
+            while (Deck.Count > 0 && CurrentPhase != GamePhase.GameOver)
             {
                 try
                 {
-                    Console.WriteLine($"[DEBUG] MahjongGameManager: Starting await DiscardPhase() for turn seat: {TurnManager.GetCurrentTurnSeat()}"); // TurnManagerに現在のSeatを取得するメソッドを追加する必要があるかもしれません
-                    await DiscardPhase();
-                    Console.WriteLine("[DEBUG] MahjongGameManager: DiscardPhase completed. Calling NextTurn()");
-                    NextTurn();
-                    Console.WriteLine("[DEBUG] MahjongGameManager: NextTurn completed.");
+                    Debug.WriteLine($"[Game] ----- Turn Start: Player {TurnManager.GetCurrentTurnSeat()}, Deck: {Deck.Count} -----");
+                    CurrentPhase = GamePhase.DrawPhase;
+                    EnableHandInteractionCallback?.Invoke(false); // <<< Drawフェーズも操作不可
+                    TurnManager.StartTurn();
+                    RefreshHandDisplayCallback?.Invoke();
+
+                    // --- Tsumo/Kan Check ---
+                    // If win/kan happens, skip discard phase logic below
+
+                    // --- Discard Phase ---
+                    CurrentPhase = GamePhase.DiscardPhase;
+                    Debug.WriteLine($"[Game] Entering Discard Phase for Player {TurnManager.GetCurrentTurnSeat()}");
+
+                    if (TurnManager.IsHumanTurn())
+                    {
+                        EnableHandInteractionCallback?.Invoke(true); // <<< ★★★ここで操作可能にする★★★
+                        await WaitForHumanDiscardAsync();
+                        // WaitForHumanDiscardAsyncが完了したら、UIは既に無効化されているはず(NotifyHumanDiscardOfTurnManager内で)
+                        Debug.WriteLine($"[Game] Human discard completed.");
+                    }
+                    else // AI Turn
+                    {
+                        EnableHandInteractionCallback?.Invoke(false); // <<< AIターン中は操作不可
+                        // await Task.Delay(500); // Thinking delay
+                        TurnManager.DiscardByAI();
+                        RefreshHandDisplayCallback?.Invoke();
+                        Debug.WriteLine($"[Game] AI discard completed.");
+                    }
+
+                    // --- Call Check Phase ---
+                    if (TurnManager.LastDiscardedTile != null && CurrentPhase != GamePhase.RoundOver) // Only check if discard happened and round not ended
+                    {
+                        CurrentPhase = GamePhase.CallCheckPhase;
+                        EnableHandInteractionCallback?.Invoke(false); // <<< コールチェック中は操作不可
+                        Debug.WriteLine($"[Game] Entering Call Check Phase for tile: {TurnManager.LastDiscardedTile.Name()}");
+                        // await TurnManager.CheckCalls(...); // 鳴き処理待ち
+                        // If call happens, TurnManager might change CurrentTurnSeat
+                    }
+
+                    // --- Advance Turn ---
+                    if (CurrentPhase != GamePhase.RoundOver && CurrentPhase != GamePhase.GameOver)
+                    {
+                        CurrentPhase = GamePhase.TurnEndPhase;
+                        EnableHandInteractionCallback?.Invoke(false); // <<< ターン終了フェーズも操作不可
+                        TurnManager.NextTurn();
+                        Debug.WriteLine($"[Game] Advancing to next turn: Player {TurnManager.GetCurrentTurnSeat()}");
+                    }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[FATAL ERROR] Exception in StartGame loop: {ex.Message}");
-                    Console.WriteLine(ex.StackTrace);
-                    // ここでループを中断するか、エラー処理を行う
+                    Debug.WriteLine($"[FATAL ERROR] Exception in StartGame loop: {ex.Message}\n{ex.StackTrace}");
+                    CurrentPhase = GamePhase.GameOver;
+                    EnableHandInteractionCallback?.Invoke(false); // <<< エラー時も操作不可
                     break;
                 }
             }
-            Console.WriteLine("[DEBUG] MahjongGameManager: Game loop finished (Deck empty?).");
-        }
 
-        public async Task DiscardPhase()
-        {
-            CurrentPhase = GamePhase.DiscardPhase;
-            // Console.WriteLine($"Entered {GamePhase.DiscardPhase} phase."); // デバッグログ
-
-            if (TurnManager.IsHumanTurn())
+            // Game loop finished
+            EnableHandInteractionCallback?.Invoke(false); // <<< ゲーム終了時も操作不可
+            if (CurrentPhase != GamePhase.GameOver)
             {
-                var discardTaskCompletion = new TaskCompletionSource<bool>();
-
-                // 捨て牌が完了したら待機解除する
-                // TurnManager.SetHumanPlayerDiscardCallback(() =>
-                // {
-                //     discardTaskCompletion.TrySetResult(true); // 待機解除
-                //     Console.WriteLine("Discard phase completed for human."); // デバッグログ
-                // });
-                TurnManager.SetHumanPlayerDiscardCallback(() =>
-                {
-                    Console.WriteLine("[DEBUG] Callback: Attempting TrySetResult."); // 追加
-                    bool setResult = discardTaskCompletion.TrySetResult(true); // 結果を変数に受ける
-                    Console.WriteLine($"[DEBUG] Callback: TrySetResult successful: {setResult}."); // 結果をログ出力 (追加)
-                    Console.WriteLine("Discard phase completed for human.");
-                });
-
-                // タスク完了を待つ
-                await discardTaskCompletion.Task.ConfigureAwait(false);
-                Console.WriteLine("[DEBUG] MahjongGameManager: DiscardPhase await completed for human.");
+                CurrentPhase = GamePhase.RoundOver;
+                TurnManager.EndRound();
             }
-            else
-            {
-                TurnManager.DiscardByAI();
-                // Console.WriteLine("Discard phase completed for AI."); // デバッグログ
-            }
+            Debug.WriteLine("[Game] Game loop finished.");
         }
 
-        public void NextTurn()
+        private TaskCompletionSource<bool>? _humanDiscardTcs;
+
+        private Task WaitForHumanDiscardAsync()
         {
-            Console.WriteLine("[DEBUG] MahjongGameManager: NextTurn() called.");
-            Console.WriteLine("[DEBUG] MahjongGameManager: Calling TurnManager.NextTurn()");
-            TurnManager.NextTurn();
-            Console.WriteLine("[DEBUG] MahjongGameManager: TurnManager.NextTurn() returned.");
-            RefreshHandDisplay?.Invoke();
-            Console.WriteLine("[DEBUG] MahjongGameManager: Calling TurnManager.StartTurn()");
-            TurnManager.StartTurn();
-            Console.WriteLine("[DEBUG] MahjongGameManager: TurnManager.StartTurn() returned.");
+            _humanDiscardTcs = new TaskCompletionSource<bool>();
+            Debug.WriteLine("[Game] Waiting for human discard...");
+            return _humanDiscardTcs.Task;
         }
 
-        public void FinishTurn()
-        {
-            Console.WriteLine("Called FinishTurn.");
-            CurrentPhase = GamePhase.MakeDecision;
-        }
-
-        public HumanPlayer GetHumanPlayer()
-        {
-            foreach (Player player in Players)
-            {
-                if (player.IsHuman)
-                {
-                    return (HumanPlayer)player;
-                }
-            }
-
-            return null;
-        }
-
-
-        // void StartRound();
-        // void ProcessTurn();
-        // bool CheckWinOrDraw();
-        // void EndRound();
-        // void AdvanceRound();
-        // void EndGame();
-
-        Action RefreshHandDisplay;
-        public void SetUpdateUICallBack(Action refreshHandDisplay)
-        {
-            RefreshHandDisplay = refreshHandDisplay;
-            TurnManager.SetUpdateUICallBack(refreshHandDisplay);
-        }
+        /// <summary>
+        /// UIからの人間プレイヤー打牌完了通知を受け取ります。
+        /// </summary>
         public void NotifyHumanDiscardOfTurnManager()
         {
-            Console.WriteLine("[DEBUG] MahjongGameManager: NotifyHumanDiscardOfTurnManager called. Forwarding to TurnManager.");
-            TurnManager.NotifyHumanDiscard();
+            Debug.WriteLine("[Game] Received notification of human discard.");
+            // ★★★ 打牌完了したのでUI操作を不可にする ★★★
+            EnableHandInteractionCallback?.Invoke(false);
+            // Taskを完了させてゲームループを続行
+            _humanDiscardTcs?.TrySetResult(true);
+        }
+
+        public bool IsHumanTurnFromTurnManager()
+        {
+            return TurnManager.IsHumanTurn();
+        }
+
+        public HumanPlayer? GetHumanPlayer()
+        {
+            return Players.OfType<HumanPlayer>().FirstOrDefault();
+        }
+
+        public void SetUpdateUICallBack(Action refreshHandDisplay)
+        {
+            RefreshHandDisplayCallback = refreshHandDisplay;
+        }
+
+        /// <summary>
+        /// UI 操作の有効/無効を切り替えるコールバックを設定します。
+        /// </summary>
+        public void SetEnableHandInteractionCallback(Action<bool> enableInteraction) // <<< 追加
+        {
+            EnableHandInteractionCallback = enableInteraction;
         }
 
         public void Test()
         {
-            StartGame();
+            _ = StartGame();
         }
     }
 }

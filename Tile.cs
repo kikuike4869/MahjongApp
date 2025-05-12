@@ -1,3 +1,6 @@
+using System.Drawing;
+using System.IO; // Keep for potential future use, but GetImage logic moved
+
 namespace MahjongApp
 {
     public class Tile
@@ -17,27 +20,36 @@ namespace MahjongApp
             IsSelected = isSelected;
         }
 
+        /// <summary>
+        /// 画像ファイル名やキャッシュキーとして使用される文字列表現を取得します。
+        /// 例: "Manzu_5", "Souzu_5_red", "Honor_1"
+        /// </summary>
         public override string ToString()
         {
+            // 赤ドラの場合 "_red" を付加
             return $"{Suit}_{Number}{(IsRed ? "_red" : "")}";
         }
 
+        /// <summary>
+        /// デバッグや識別に使うための詳細な名前を取得します (Indexを含む)。
+        /// 例: "Manzu_5_0", "Souzu_5_3"
+        /// </summary>
         public string Name()
         {
             return $"{Suit}_{Number}_{Index}";
         }
 
+        /// <summary>
+        /// この牌に対応する画像を取得します (キャッシュを利用)。
+        /// </summary>
+        /// <returns>牌の画像。</returns>
         public Image GetImage()
         {
-            string filePath = $"Resources/Tiles/{ToString()}.png";
-            if (System.IO.File.Exists(filePath))
-            {
-                return Image.FromFile(filePath);
-            }
-            else
-            {
-                throw new FileNotFoundException($"Image file not found: {filePath}");
-            }
+            // TileImageCache クラス経由で画像を取得
+            return TileImageCache.GetImage(this);
         }
     }
+
+    // Suit enum definition (assuming it exists elsewhere or define here)
+    // public enum Suit { Manzu, Pinzu, Souzu, Honor }
 }
