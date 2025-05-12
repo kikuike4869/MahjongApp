@@ -45,16 +45,20 @@ namespace MahjongApp
 
         public void StartTurn()
         {
+            Console.WriteLine($"[DEBUG] TurnManager: StartTurn() called for CurrentTurnSeat: {CurrentTurnSeat}");
             Console.WriteLine($"Deck Count: {Deck.Count}");
             if (Deck.Count == 0)
             {
+                Console.WriteLine("[DEBUG] TurnManager: Deck is empty, calling EndRound.");
                 EndRound();
+                return;
             }
 
             Player currentPlayer = Players[CurrentTurnSeat];
             currentPlayer.IsTsumo = true;
             Tile drawn = Deck.Draw();
             currentPlayer.Draw(drawn);
+            RefreshHandDisplay?.Invoke();
 
             // if (currentPlayer.CanTsumo())
             // {
@@ -71,9 +75,10 @@ namespace MahjongApp
 
         public void NextTurn()
         {
+            Console.WriteLine($"[DEBUG] TurnManager: NextTurn() called. CurrentTurnSeat BEFORE: {CurrentTurnSeat}");
             Players[CurrentTurnSeat].IsTsumo = false;
             CurrentTurnSeat = (CurrentTurnSeat + 1) % Config.Instance.NumberOfPlayers;
-            // StartTurn();
+            Console.WriteLine($"[DEBUG] TurnManager: NextTurn() finished. CurrentTurnSeat AFTER: {CurrentTurnSeat}");
         }
         // public void ProceedAfterDiscard(Tile discardedTile); // 打牌後の鳴きチェックと次手番へ
 
@@ -97,5 +102,30 @@ namespace MahjongApp
             Players[CurrentTurnSeat].DiscardTile();
         }
 
+        Action? RefreshHandDisplay = null;
+        public void SetUpdateUICallBack(Action refreshHandDisplay)
+        {
+            RefreshHandDisplay = refreshHandDisplay;
+        }
+
+        private Action? OnHumanDiscard = null;
+        public void SetHumanPlayerDiscardCallback(Action onHumanDiscard)
+        {
+            OnHumanDiscard = onHumanDiscard;
+        }
+
+        public void NotifyHumanDiscard()
+        {
+            // Console.WriteLine("NotifyHumanDiscard called.");
+            Console.WriteLine("[DEBUG] TurnManager: NotifyHumanDiscard called. Invoking callback.");
+            OnHumanDiscard?.Invoke();
+            OnHumanDiscard = null;
+        }
+
+
+        public int GetCurrentTurnSeat()
+        {
+            return CurrentTurnSeat;
+        }
     }
 }

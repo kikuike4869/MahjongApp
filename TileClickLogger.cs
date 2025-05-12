@@ -30,8 +30,8 @@ namespace MahjongApp
                 {
                     Player.DiscardTile(SelectedTile);
                     RefreshHandDisplay?.Invoke();
-                    GameManager.NotifyHumanDiscard();
-                    // GameManager.FinishTurn();
+                    Console.WriteLine($"[DEBUG] TileClickLogger: Discarding {SelectedTile.Name()}. Notifying GameManager.");
+                    GameManager.NotifyHumanDiscardOfTurnManager();
                 }
                 else
                 {
