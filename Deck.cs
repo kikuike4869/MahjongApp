@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace MahjongApp
 {
     class Deck
@@ -19,6 +21,19 @@ namespace MahjongApp
             DoraIndicator = new List<Tile>();
             HiddenDoraIndicator = new List<Tile>();
             WanPie = new List<Tile>();
+
+            random = new Random();
+
+            InitializeDeck();
+        }
+        public void InitializeDeck()
+        {
+            Tiles.Clear();
+            Dora.Clear();
+            HiddenDora.Clear();
+            DoraIndicator.Clear();
+            HiddenDoraIndicator.Clear();
+            WanPie.Clear();
 
             random = new Random();
 

@@ -1,6 +1,6 @@
 namespace MahjongApp
 {
-    class Player
+    public class Player
     {
         public string Name { get; set; } = "unknown";
         public int SeatIndex { get; set; } // 0=自分, 1=下家, 2=対面, 3=上家
@@ -14,6 +14,8 @@ namespace MahjongApp
         public bool HasDeclaredRiichi { get; private set; } = false;
         public bool IsIppatsu { get; set; } = false;
         public bool IsTenpai { get; set; } = false;
+        public bool IsRiichi { get; set; } = false;
+        public bool IsTsumo { get; set; } = false;
 
         public bool IsHuman { get; protected set; } = false;
 
@@ -21,6 +23,15 @@ namespace MahjongApp
         {
             Hand.Add(tile);
         }
+
+        public void SortHand()
+        {
+            if (!IsRiichi)
+                Hand = Hand.OrderBy(t => t.Suit).ThenBy(t => t.Number).ToList();
+        }
+
+        public virtual void DiscardTile() { }
+
         // public virtual Tile ChooseDiscard();          // 捨てる牌を選ぶ
         // public void Discard(Tile tile);               // 捨てる処理
         // public void DeclareRiichi();                  // リーチ宣言
@@ -29,9 +40,25 @@ namespace MahjongApp
         // public void SortHand();                       // 手牌をソート（見やすさ用）
     }
 
-    class HumanPlayer : Player
+    public class HumanPlayer : Player
     {
         public HumanPlayer() { IsHuman = true; }
+
+        public void DiscardTile(Tile tile)
+        {
+            if (Hand.Contains(tile))
+            {
+                tile.IsSelected = false;
+                Hand.Remove(tile);
+                Discards.Add(tile);
+                IsTsumo = false;
+            }
+            else
+            {
+                throw new ArgumentException("The Selected Tile doesn't exist.");
+            }
+
+        }
 
         // public override Tile ChooseDiscard()
         // {
@@ -40,10 +67,22 @@ namespace MahjongApp
         // }
     }
 
-    class AIPlayer : Player
+    public class AIPlayer : Player
     {
         public AIPlayer() { IsHuman = false; }
+        public void DiscardTile(Tile tile)
+        {
+            if (Hand.Count > 0)
+            {
+                Random random = new Random();
+                int tileIndex = random.Next(Hand.Count);
+                Tile tileToDiscard = Hand[tileIndex];
 
+                Hand.Remove(tileToDiscard);
+                Discards.Add(tileToDiscard);
+            }
+
+        }
         // public override Tile ChooseDiscard()
         // {
         //     // 初期段階では完全ランダム
@@ -52,7 +91,7 @@ namespace MahjongApp
         // }
     }
 
-    class Meld
+    public class Meld
     {
         public MeldType Type { get; set; }
         public List<Tile> Tiles { get; set; } = new List<Tile>();

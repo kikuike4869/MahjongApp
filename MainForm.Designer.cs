@@ -35,6 +35,11 @@ namespace MahjongApp
             this.components = new System.ComponentModel.Container();
             this.BackColor = Color.Green;
             // this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.DoubleBuffered = true;
+            this.SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
+            this.SetStyle(ControlStyles.AllPaintingInWmPaint, true);
+            this.SetStyle(ControlStyles.UserPaint, true);
+            this.UpdateStyles();
         }
 
         #endregion

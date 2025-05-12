@@ -6,13 +6,15 @@ namespace MahjongApp
         public int Index { get; private set; }
         public int Number { get; private set; }         // 1-9 for 数牌, 1-7 for 字牌 (東=1, 南=2, ..., 中=7)
         public bool IsRed { get; private set; }
+        public bool IsSelected { get; set; }
 
-        public Tile(Suit suit, int number, int index, bool isRed = false)
+        public Tile(Suit suit, int number, int index, bool isRed = false, bool isSelected = false)
         {
             Suit = suit;
             Number = number;
             Index = index;
             IsRed = isRed;
+            IsSelected = isSelected;
         }
 
         public override string ToString()

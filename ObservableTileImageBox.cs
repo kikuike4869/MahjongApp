@@ -10,7 +10,7 @@ namespace MahjongApp
 
         public void RegisterObserver(ITilePictureBoxObserver observer)
         {
-            observers.Add(observer);
+            observers.Add(observer);;
         }
 
         public void RemoveObserver(ITilePictureBoxObserver observer)
