@@ -70,13 +70,15 @@ namespace MahjongApp
     public class AIPlayer : Player
     {
         public AIPlayer() { IsHuman = false; }
-        public void DiscardTile(Tile tile)
+        public override void DiscardTile()
         {
             if (Hand.Count > 0)
             {
                 Random random = new Random();
                 int tileIndex = random.Next(Hand.Count);
                 Tile tileToDiscard = Hand[tileIndex];
+
+                // await Task.Delay(5000);
 
                 Hand.Remove(tileToDiscard);
                 Discards.Add(tileToDiscard);

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MahjongApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d3938433a73e13083da0741e32a5ea6366b77be6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9b212b36be1a12be63a5abc8570736c8527ee404")]
 [assembly: System.Reflection.AssemblyProductAttribute("MahjongApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MahjongApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

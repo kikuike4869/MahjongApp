@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace MahjongApp
 {
     public class MahjongGameManager
@@ -31,7 +33,7 @@ namespace MahjongApp
         {
             DealerIndex = 0;
 
-            for (int i = 0; i < Config.Instance.NumberOfPlayers - 1; i++)
+            for (int i = 0; i < Config.Instance.NumberOfPlayers; i++)
             {
                 if (i == 0)
                     Players.Add(new HumanPlayer());
@@ -40,9 +42,49 @@ namespace MahjongApp
             }
         }
 
-        public void StartGame()
+        public async Task StartGame()
         {
+            TurnManager.StartNewRound();
+            RefreshHandDisplay?.Invoke();
 
+            while (Deck.Count > 0)
+            {
+                await DiscardPhase();
+                NextTurn();
+            }
+        }
+
+        public async Task DiscardPhase()
+        {
+            CurrentPhase = GamePhase.DiscardPhase;
+            Console.WriteLine($"Entered {GamePhase.DiscardPhase} phase."); // デバッグログ
+
+            if (TurnManager.IsHumanTurn())
+            {
+                var discardTaskCompletion = new TaskCompletionSource<bool>();
+
+                // 捨て牌が完了したら待機解除する
+                SetHumanPlayerDiscardCallback(() =>
+                {
+                    discardTaskCompletion.TrySetResult(true); // 待機解除
+                    Console.WriteLine("Discard phase completed for human."); // デバッグログ
+                });
+
+                // タスク完了を待つ
+                await discardTaskCompletion.Task;
+            }
+            else
+            {
+                TurnManager.DiscardByAI();
+                Console.WriteLine("Discard phase completed for AI."); // デバッグログ
+            }
+        }
+
+        public void NextTurn()
+        {
+            TurnManager.NextTurn();
+            RefreshHandDisplay?.Invoke();
+            TurnManager.StartTurn();
         }
 
         public void FinishTurn()
@@ -79,9 +121,22 @@ namespace MahjongApp
             RefreshHandDisplay = refreshHandDisplay;
         }
 
+        private Action? onHumanDiscard = null;
+
+        public void SetHumanPlayerDiscardCallback(Action callback)
+        {
+            onHumanDiscard = callback;
+        }
+
+        public void NotifyHumanDiscard()
+        {
+            Console.WriteLine("NotifyHumanDiscard called.");
+            onHumanDiscard?.Invoke();
+            onHumanDiscard = null;
+        }
+
         public void Test()
         {
-            RefreshHandDisplay?.Invoke();
             StartGame();
         }
     }

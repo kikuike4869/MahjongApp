@@ -21,7 +21,7 @@ namespace MahjongApp
 
         public void OnPictureBoxClicked()
         {
-            Console.WriteLine($"Tile {SelectedTile.Name()} was clicked!");
+            // Console.WriteLine($"Tile {SelectedTile.Name()} was clicked!");
 
 
             if (SelectedTile.IsSelected)
@@ -30,8 +30,8 @@ namespace MahjongApp
                 {
                     Player.DiscardTile(SelectedTile);
                     RefreshHandDisplay?.Invoke();
-
-                    GameManager.FinishTurn();
+                    GameManager.NotifyHumanDiscard();
+                    // GameManager.FinishTurn();
                 }
                 else
                 {
