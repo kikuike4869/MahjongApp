@@ -22,8 +22,8 @@ namespace MahjongApp
         private int SelectedOffsetY = TileHeight / 2;
         private int DrawnTileOffsetX = TileWidth;
 
-        private const int DiscardTileWidth = 30;
-        private const int DiscardTileHeight = 40;
+        private const int DiscardTileWidth = 36;
+        private const int DiscardTileHeight = 48;
         private const int DiscardColumns = 6;
 
         private Dictionary<int, Point> DiscardWallStartPositions = new Dictionary<int, Point>();
@@ -81,25 +81,26 @@ namespace MahjongApp
             DiscardWallRotations.Clear();
 
             int centerX = this.ClientSize.Width / 2;
-            int centerY = this.ClientSize.Height / 2;
+            int centerY = (this.ClientSize.Height - TileHeight) / 2;
             Size playerDiscardAreaSize = new Size(DiscardTileWidth * DiscardColumns, DiscardTileHeight * (24 / DiscardColumns)); // MaxDiscardTilesPerPlayer
             Size playerDiscardAreaSizeRotated = new Size(DiscardTileHeight * (24 / DiscardColumns), DiscardTileWidth * DiscardColumns);
-            int marginFromCenter = 50;
-            int topMargin = 30; // 上部のマージン
+            int marginFromCenter = DiscardTileWidth * 3;
+
+            int OffsetY = 0;
 
             if (numberOfPlayers == 4)
             {
                 // 自分 (0)
-                DiscardWallStartPositions[0] = new Point(centerX - playerDiscardAreaSize.Width / 2, HandStartY - playerDiscardAreaSize.Height - 10);
+                DiscardWallStartPositions[0] = new Point(centerX - playerDiscardAreaSize.Width / 2, centerY + marginFromCenter + OffsetY);
                 DiscardWallRotations[0] = false;
                 // 右 (1)
-                DiscardWallStartPositions[1] = new Point(centerX + marginFromCenter + TileWidth, centerY - playerDiscardAreaSizeRotated.Height / 2); // 手牌と被らないように調整
+                DiscardWallStartPositions[1] = new Point(centerX + marginFromCenter, centerY + playerDiscardAreaSize.Width / 2 - DiscardTileWidth + OffsetY);
                 DiscardWallRotations[1] = true;
                 // 対面 (2)
-                DiscardWallStartPositions[2] = new Point(centerX - playerDiscardAreaSize.Width / 2, topMargin);
-                DiscardWallRotations[2] = false; // 回転はManager側で180度として処理
+                DiscardWallStartPositions[2] = new Point(centerX - playerDiscardAreaSize.Width / 2, centerY - marginFromCenter - DiscardTileHeight + OffsetY);
+                DiscardWallRotations[2] = false;
                 // 左 (3)
-                DiscardWallStartPositions[3] = new Point(centerX - marginFromCenter - playerDiscardAreaSizeRotated.Width - TileWidth, centerY - playerDiscardAreaSizeRotated.Height / 2); // 手牌と被らないように調整
+                DiscardWallStartPositions[3] = new Point(centerX - marginFromCenter - DiscardTileHeight, centerY - playerDiscardAreaSize.Width / 2 + OffsetY);
                 DiscardWallRotations[3] = true;
             }
             // 他のプレイヤー数のレイアウトも必要なら追加

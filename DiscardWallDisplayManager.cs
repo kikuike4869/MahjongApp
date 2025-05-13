@@ -115,8 +115,8 @@ namespace MahjongApp
                         if (rotate)
                         {
                             Image rotatedImage = (Image)tileImage.Clone();
-                            if (player.SeatIndex == 1) rotatedImage.RotateFlip(RotateFlipType.Rotate90FlipNone);
-                            else if (player.SeatIndex == 3) rotatedImage.RotateFlip(RotateFlipType.Rotate270FlipNone);
+                            if (player.SeatIndex == 1) rotatedImage.RotateFlip(RotateFlipType.Rotate270FlipNone);
+                            else if (player.SeatIndex == 3) rotatedImage.RotateFlip(RotateFlipType.Rotate90FlipNone);
                             // rotatedImage は後でDisposeが必要かもしれないので注意 (pb.Image に代入されたものが対象)
                             imageToDisplay = rotatedImage;
                             pb.Size = new Size(DiscardTileHeight, DiscardTileWidth);
@@ -177,13 +177,13 @@ namespace MahjongApp
             {
                 if (seatIndex == 1) // 右
                 {
-                    x = startPosition.X + col * DiscardTileHeight;
-                    y = startPosition.Y + row * DiscardTileWidth;
+                    x = startPosition.X + row * DiscardTileHeight;
+                    y = startPosition.Y - col * DiscardTileWidth;
                 }
                 else // 左 (seatIndex == 3)
                 {
-                    x = startPosition.X + col * DiscardTileHeight;
-                    y = startPosition.Y + row * DiscardTileWidth;
+                    x = startPosition.X - row * DiscardTileHeight;
+                    y = startPosition.Y + col * DiscardTileWidth;
                 }
             }
             else
@@ -191,7 +191,7 @@ namespace MahjongApp
                 if (seatIndex == 2) // 対面
                 {
                     x = startPosition.X + (DiscardColumns - 1 - col) * DiscardTileWidth;
-                    y = startPosition.Y + row * DiscardTileHeight;
+                    y = startPosition.Y - row * DiscardTileHeight;
                 }
                 else // 自分 (SeatIndex 0)
                 {
