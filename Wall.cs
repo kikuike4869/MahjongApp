@@ -4,7 +4,7 @@ using System.Linq; // Added for Shuffle temporary list conversion
 
 namespace MahjongApp
 {
-    class Deck
+    class Wall
     {
         private Queue<Tile> Tiles;
         public Queue<Tile> WanPie { get; private set; }
@@ -16,7 +16,7 @@ namespace MahjongApp
 
         public int Count => Tiles?.Count ?? 0;
 
-        public Deck()
+        public Wall()
         {
             // QueueとListを初期化
             Tiles = new Queue<Tile>();
@@ -26,10 +26,10 @@ namespace MahjongApp
             HiddenDoraIndicator = new List<Tile>();
             WanPie = new Queue<Tile>(); // Changed to Queue
 
-            InitializeDeck();
+            InitializeWall();
         }
 
-        public void InitializeDeck()
+        public void InitializeWall()
         {
             Tiles.Clear();
             Dora.Clear();
@@ -108,7 +108,7 @@ namespace MahjongApp
             if (Tiles.Count == 0)
             {
                 // Consider game state for draw from wanpai (kan draw) or end of game
-                throw new InvalidOperationException("No Tiles left in the main deck.");
+                throw new InvalidOperationException("No Tiles left in the main wall.");
             }
             return Tiles.Dequeue();
         }
@@ -128,13 +128,13 @@ namespace MahjongApp
         // ドラ設定 (表示牌取得 + ドラ計算)
         private void SetDoraIndicatorAndDora()
         {
-            // Draw 5 tiles for the Dora indicators from the main deck queue
+            // Draw 5 tiles for the Dora indicators from the main wall queue
             for (int i = 0; i < 5; i++)
             {
-                 if (Tiles.Count > 0) // Ensure deck is not empty
-                     DoraIndicator.Add(Draw());
-                 else
-                     throw new InvalidOperationException("Not enough tiles to set Dora indicators.");
+                if (Tiles.Count > 0) // Ensure wall is not empty
+                    DoraIndicator.Add(Draw());
+                else
+                    throw new InvalidOperationException("Not enough tiles to set Dora indicators.");
             }
             // Calculate the first Dora based on the first indicator
             if (DoraIndicator.Count > 0)
@@ -144,17 +144,17 @@ namespace MahjongApp
         // 裏ドラ設定 (表示牌取得 + 裏ドラ計算)
         private void SetHiddenDoraIndicatorAndHiddenDora()
         {
-             // Draw 5 tiles for the Hidden Dora indicators
+            // Draw 5 tiles for the Hidden Dora indicators
             for (int i = 0; i < 5; i++)
             {
-                 if (Tiles.Count > 0)
-                     HiddenDoraIndicator.Add(Draw());
-                 else
-                     throw new InvalidOperationException("Not enough tiles to set Hidden Dora indicators.");
+                if (Tiles.Count > 0)
+                    HiddenDoraIndicator.Add(Draw());
+                else
+                    throw new InvalidOperationException("Not enough tiles to set Hidden Dora indicators.");
             }
-             // Calculate the first Hidden Dora
+            // Calculate the first Hidden Dora
             if (HiddenDoraIndicator.Count > 0)
-                 HiddenDora.Add(CalculateNextTile(HiddenDoraIndicator[0]));
+                HiddenDora.Add(CalculateNextTile(HiddenDoraIndicator[0]));
         }
 
         // 王牌設定 (嶺上牌4枚を取得)
@@ -163,10 +163,10 @@ namespace MahjongApp
             // Draw 4 tiles for the dead wall (嶺上牌)
             for (int i = 0; i < 4; i++)
             {
-                 if (Tiles.Count > 0)
-                     WanPie.Enqueue(Draw());
-                 else
-                     throw new InvalidOperationException("Not enough tiles to set WanPie.");
+                if (Tiles.Count > 0)
+                    WanPie.Enqueue(Draw());
+                else
+                    throw new InvalidOperationException("Not enough tiles to set WanPie.");
             }
         }
 

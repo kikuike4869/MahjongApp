@@ -1,4 +1,4 @@
-// MahjongGameManager.cs (修正後)
+// MahjongGameManager.cs
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,7 +10,7 @@ namespace MahjongApp
     public class MahjongGameManager
     {
         List<Player> Players;
-        Deck Deck;
+        Wall Wall;
         TurnManager TurnManager;
         CallManager CallManager;
         ScoreManager ScoreManager;
@@ -23,17 +23,18 @@ namespace MahjongApp
 
         // Callback for UI updates
         Action? RefreshHandDisplayCallback;
+        Action? RefreshDiscardWallDisplayCallback;
         // Callback for enabling/disabling UI hand interaction
         Action<bool>? EnableHandInteractionCallback; // <<< 追加
 
         public MahjongGameManager()
         {
-            Deck = new Deck();
+            Wall = new Wall();
             Players = new List<Player>();
             InitializeGame();
             CallManager = new CallManager(Players, DealerIndex);
             ScoreManager = new ScoreManager();
-            TurnManager = new TurnManager(Players, Deck, CallManager, ScoreManager, DealerIndex);
+            TurnManager = new TurnManager(Players, Wall, CallManager, ScoreManager, DealerIndex);
             TurnManager.SetUpdateUICallBack(() => RefreshHandDisplayCallback?.Invoke());
         }
 
@@ -62,11 +63,11 @@ namespace MahjongApp
             EnableHandInteractionCallback?.Invoke(false); // <<< 初期状態は操作不可
             RefreshHandDisplayCallback?.Invoke();
 
-            while (Deck.Count > 0 && CurrentPhase != GamePhase.GameOver)
+            while (Wall.Count > 0 && CurrentPhase != GamePhase.GameOver)
             {
                 try
                 {
-                    Debug.WriteLine($"[Game] ----- Turn Start: Player {TurnManager.GetCurrentTurnSeat()}, Deck: {Deck.Count} -----");
+                    Debug.WriteLine($"[Game] ----- Turn Start: Player {TurnManager.GetCurrentTurnSeat()}, Wall: {Wall.Count} -----");
                     CurrentPhase = GamePhase.DrawPhase;
                     EnableHandInteractionCallback?.Invoke(false); // <<< Drawフェーズも操作不可
                     TurnManager.StartTurn();
@@ -89,7 +90,7 @@ namespace MahjongApp
                     else // AI Turn
                     {
                         EnableHandInteractionCallback?.Invoke(false); // <<< AIターン中は操作不可
-                        await Task.Delay(10000); // Thinking delay
+                        await Task.Delay(1000); // Thinking delay
                         TurnManager.DiscardByAI();
                         RefreshHandDisplayCallback?.Invoke();
                         Debug.WriteLine($"[Game] AI discard completed.");
@@ -163,11 +164,17 @@ namespace MahjongApp
         {
             return Players.OfType<HumanPlayer>().FirstOrDefault();
         }
+        public List<Player>? GetPlayers()
+        {
+            return Players;
+        }
 
-        public void SetUpdateUICallBack(Action refreshHandDisplay)
+        public void SetUpdateUICallBack(Action refreshHandDisplay, Action refreshDiscardWallDisplay)
         {
             RefreshHandDisplayCallback = refreshHandDisplay;
+            RefreshDiscardWallDisplayCallback = refreshDiscardWallDisplay;
         }
+
 
         /// <summary>
         /// UI 操作の有効/無効を切り替えるコールバックを設定します。

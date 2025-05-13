@@ -11,7 +11,7 @@ namespace MahjongApp
         private int DealerSeat;                    // 親の席番号（0〜3）
 
         private List<Player> Players;
-        private Deck Deck;
+        private Wall Wall;
         private CallManager CallMgr; // Renamed from SallMgr for clarity
         private ScoreManager ScoreMgr;
 
@@ -23,10 +23,10 @@ namespace MahjongApp
         // Callback to signal completion of human discard (used by GameManager)
         // private Action OnHumanDiscardCompleted = null; // This notification now happens via GameManager method
 
-        public TurnManager(List<Player> players, Deck deck, CallManager callMgr, ScoreManager scoreMgr, int dealerSeat)
+        public TurnManager(List<Player> players, Wall wall, CallManager callMgr, ScoreManager scoreMgr, int dealerSeat)
         {
             this.Players = players;
-            this.Deck = deck;
+            this.Wall = wall;
             this.CallMgr = callMgr; // Use renamed variable
             this.ScoreMgr = scoreMgr;
             this.DealerSeat = dealerSeat;
@@ -43,7 +43,7 @@ namespace MahjongApp
             CurrentTurnSeat = DealerSeat; // Reset turn to dealer
             LastDiscardedTile = null;
 
-            Deck.InitializeDeck(); // Initialize and shuffle the deck
+            Wall.InitializeWall(); // Initialize and shuffle the wall
 
             // Initial draw (Haipai)
             // Assuming Config class or constant defines initial hand size
@@ -59,10 +59,10 @@ namespace MahjongApp
 
                 for (int i = 0; i < initialHandSize; i++)
                 {
-                    if (Deck.Count > 0)
-                        player.Draw(Deck.Draw()); // Use player's Draw method
+                    if (Wall.Count > 0)
+                        player.Draw(Wall.Draw()); // Use player's Draw method
                     else
-                         Debug.WriteLine("[ERROR] Deck empty during initial draw!"); // Handle error
+                        Debug.WriteLine("[ERROR] Wall empty during initial draw!"); // Handle error
                 }
                 player.IsTsumo = false; // Not in Tsumo state after initial draw
                 player.SortHand();
@@ -77,17 +77,17 @@ namespace MahjongApp
         /// </summary>
         public void StartTurn()
         {
-            Debug.WriteLine($"[Turn] StartTurn() called for Player {CurrentTurnSeat}. Deck: {Deck.Count}");
+            Debug.WriteLine($"[Turn] StartTurn() called for Player {CurrentTurnSeat}. Wall: {Wall.Count}");
 
-            if (Deck.Count == 0)
+            if (Wall.Count == 0)
             {
-                Debug.WriteLine("[Turn] Deck is empty, cannot draw. Triggering EndRound.");
+                Debug.WriteLine("[Turn] Wall is empty, cannot draw. Triggering EndRound.");
                 EndRound(); // Or trigger draw condition check
                 return;
             }
 
             Player currentPlayer = Players[CurrentTurnSeat];
-            Tile drawnTile = Deck.Draw();
+            Tile drawnTile = Wall.Draw();
             currentPlayer.Draw(drawnTile); // Player's Draw method sets IsTsumo = true
             Debug.WriteLine($"[Turn] Player {CurrentTurnSeat} drew: {drawnTile.Name()}");
             // RefreshHandDisplayCallback?.Invoke(); // GameManager triggers refresh after StartTurn
@@ -107,31 +107,31 @@ namespace MahjongApp
         /// </summary>
         public void DiscardByAI()
         {
-             Player currentPlayer = Players[CurrentTurnSeat];
-             if (currentPlayer.IsHuman || currentPlayer.Hand.Count == 0)
-             {
-                 Debug.WriteLine($"[Turn ERROR] DiscardByAI called for Human or empty hand.");
-                 return; // Should not happen
-             }
+            Player currentPlayer = Players[CurrentTurnSeat];
+            if (currentPlayer.IsHuman || currentPlayer.Hand.Count == 0)
+            {
+                Debug.WriteLine($"[Turn ERROR] DiscardByAI called for Human or empty hand.");
+                return; // Should not happen
+            }
 
-             // 1. AI chooses a tile
-             Tile? tileToDiscard = currentPlayer.ChooseDiscardTile();
+            // 1. AI chooses a tile
+            Tile? tileToDiscard = currentPlayer.ChooseDiscardTile();
 
-             if (tileToDiscard != null)
-             {
-                 Debug.WriteLine($"[Turn] AI Player {CurrentTurnSeat} chose to discard: {tileToDiscard.Name()}");
-                 // 2. Execute the discard
-                 DiscardTile(currentPlayer, tileToDiscard);
-             }
-             else
-             {
-                  Debug.WriteLine($"[Turn ERROR] AI Player {CurrentTurnSeat} failed to choose a discard tile.");
-                  // Handle error - maybe discard last drawn tile?
-                  if (currentPlayer.Hand.Count > 0)
-                  {
-                      DiscardTile(currentPlayer, currentPlayer.Hand.LastOrDefault()); // Fallback
-                  }
-             }
+            if (tileToDiscard != null)
+            {
+                Debug.WriteLine($"[Turn] AI Player {CurrentTurnSeat} chose to discard: {tileToDiscard.Name()}");
+                // 2. Execute the discard
+                DiscardTile(currentPlayer, tileToDiscard);
+            }
+            else
+            {
+                Debug.WriteLine($"[Turn ERROR] AI Player {CurrentTurnSeat} failed to choose a discard tile.");
+                // Handle error - maybe discard last drawn tile?
+                if (currentPlayer.Hand.Count > 0)
+                {
+                    DiscardTile(currentPlayer, currentPlayer.Hand.LastOrDefault()); // Fallback
+                }
+            }
         }
 
         /// <summary>
@@ -141,14 +141,14 @@ namespace MahjongApp
         /// <param name="tileToDiscard">捨てる牌。</param>
         public void DiscardTile(Player player, Tile? tileToDiscard)
         {
-             if (player == null || tileToDiscard == null) return;
+            if (player == null || tileToDiscard == null) return;
 
-             player.DiscardTile(tileToDiscard); // Use Player's method to update hand/discards
-             LastDiscardedTile = tileToDiscard; // Track the discarded tile
-             Debug.WriteLine($"[Turn] Player {player.SeatIndex} discarded: {LastDiscardedTile.Name()}");
+            player.DiscardTile(tileToDiscard); // Use Player's method to update hand/discards
+            LastDiscardedTile = tileToDiscard; // Track the discarded tile
+            Debug.WriteLine($"[Turn] Player {player.SeatIndex} discarded: {LastDiscardedTile.Name()}");
 
-             // Check for Ron after discard? (Logic for other players)
-             // CheckCalls(LastDiscardedTile); // GameManager might handle this phase transition
+            // Check for Ron after discard? (Logic for other players)
+            // CheckCalls(LastDiscardedTile); // GameManager might handle this phase transition
         }
 
 
@@ -162,7 +162,7 @@ namespace MahjongApp
             {
                 Players[CurrentTurnSeat].IsTsumo = false; // Reset Tsumo state for the player whose turn just ended
                 CurrentTurnSeat = (CurrentTurnSeat + 1) % Players.Count;
-                 TurnCount++; // Increment turn count
+                TurnCount++; // Increment turn count
                 LastDiscardedTile = null; // Reset last discard for the new turn
                 Debug.WriteLine($"[Turn] NextTurn() finished. CurrentTurnSeat AFTER: {CurrentTurnSeat}, TurnCount: {TurnCount}");
             }
@@ -185,7 +185,7 @@ namespace MahjongApp
         {
             if (Players.Count > CurrentTurnSeat && CurrentTurnSeat >= 0)
             {
-                 // Debug.WriteLine($"[Turn] Checking IsHumanTurn: Seat={CurrentTurnSeat}, IsHuman={Players[CurrentTurnSeat].IsHuman}");
+                // Debug.WriteLine($"[Turn] Checking IsHumanTurn: Seat={CurrentTurnSeat}, IsHuman={Players[CurrentTurnSeat].IsHuman}");
                 return Players[CurrentTurnSeat].IsHuman;
             }
             return false; // Invalid state
