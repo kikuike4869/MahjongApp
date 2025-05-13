@@ -13,6 +13,7 @@ namespace MahjongApp
         private MahjongGameManager gameManager;
         private HandDisplayManager handDisplayManager;
         private DiscardWallDisplayManager discardWallDisplayManager;
+        private GameStatusDisplayManager gameStatusDisplayManager;
 
         // UI Layout Constants (一部は各Managerに渡す)
         private const int TileWidth = 60;
@@ -41,7 +42,7 @@ namespace MahjongApp
 
             // gameManagerの初期化
             gameManager = new MahjongGameManager();
-            gameManager.SetUpdateUICallBack(RefreshHandDisplays, RefreshDiscardWallDisplays); // UI更新コールバック
+            gameManager.SetUpdateUICallBack(RefreshHandDisplays, RefreshDiscardWallDisplays, RefreshGameStatusDisplays); // UI更新コールバック
             gameManager.SetEnableHandInteractionCallback(EnableHandInteraction); // UI操作可否コールバック
 
             this.FormClosing += MainForm_FormClosing;
@@ -70,6 +71,35 @@ namespace MahjongApp
                 DiscardTileWidth, DiscardTileHeight, DiscardColumns,
                 DiscardWallStartPositions, DiscardWallRotations
             );
+
+            gameStatusDisplayManager = new GameStatusDisplayManager(
+            this, // 親コントロール (MainForm自体)
+            // 以下は MahjongGameManager から情報を取得して文字列を返すコールバック
+            () =>
+            { // RoundInfo
+                // MahjongGameManager から局、場風を取得して整形
+                // 例: return $"{gameManager.GetCurrentRoundWind()} {gameManager.GetCurrentRoundNumber()}局";
+                return gameManager.GetCurrentRoundDescription(); // GameManagerにメソッド実装を想定
+            },
+            () =>
+            { // HonbaRiichi
+                // 例: return $"{gameManager.GetHonbaCount()}本場  供託: {gameManager.GetRiichiSticks()}本";
+                return $"本場: {gameManager.GetHonba()}  供託: {gameManager.GetRiichiStickCount()}"; // GameManagerにメソッド実装を想定
+            },
+            () =>
+            { // CurrentTurn
+                Player currentPlayer = gameManager.GetPlayers()?.FirstOrDefault(p => p.SeatIndex == gameManager.GetCurrentTurnSeat());
+                if (currentPlayer != null)
+                {
+                    // TODO: 風の表示も加える (例: "(東家)")
+                    return $"手番: {currentPlayer.Name}";
+                }
+                return "手番: N/A";
+            },
+            () => $"残り: {gameManager.GetRemainingTileCount()}枚", // RemainingTiles
+            () => gameManager.GetPlayers() // Players
+        );
+            gameStatusDisplayManager.UpdateLayout(this.ClientSize); // 初期レイアウト
 
             gameManager.Test(); // ゲーム開始 (DisplayManager初期化後)
         }
@@ -123,6 +153,16 @@ namespace MahjongApp
                 return;
             }
             handDisplayManager?.RefreshDisplay();
+        }
+
+        private void RefreshGameStatusDisplays()
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new Action(RefreshGameStatusDisplays));
+                return;
+            }
+            gameStatusDisplayManager?.RefreshDisplay();
         }
 
         // HandDisplayManagerからのコールバック処理
@@ -188,6 +228,7 @@ namespace MahjongApp
             Debug.WriteLine("[UI] Form closing, disposing resources.");
             handDisplayManager?.ClearPictureBoxes();
             discardWallDisplayManager?.ClearPictureBoxes();
+            gameStatusDisplayManager?.ClearControls();
             TileImageCache.DisposeCache();
         }
     }
