@@ -11,16 +11,20 @@ namespace MahjongApp
     {
         private MahjongGameManager gameManager;
         // PictureBoxを保持するリスト (ObservableTilePictureBoxはPictureBoxで代用)
-        private List<PictureBox> TilePictureBoxes = new List<PictureBox>();
-        private const int MaxHandTiles = 14; // Maximum possible tiles in hand (13 + 1 drawn)
+        private List<PictureBox> HandTilePictureBoxes = new List<PictureBox>();
+        private const int MaxHandTiles = 15; // Maximum possible tiles in hand (13 + 1 drawn)
 
         // UI Layout Constants (Consider making these configurable or dynamic)
-        private const int TileWidth = 55; // Slightly smaller for default layout
-        private const int TileHeight = 75;
-        private const int HandStartX = 50;
-        private const int HandStartY = 450; // Adjust based on form size
-        private const int SelectedOffsetY = 20; // How much selected tiles move up
-        private const int DrawnTileOffsetX = 15; // Space between 13th and drawn tile
+        private const int TileWidth = 60; // Slightly smaller for default layout
+        private const int TileHeight = 80;
+        private int HandStartX = TileWidth;
+        private int HandStartY = Config.Instance.ScreenSize.Height - TileHeight * 2; // Adjust based on form size
+        private int SelectedOffsetY = TileHeight / 2; // How much selected tiles move up
+        private int DrawnTileOffsetX = TileWidth; // Space between 13th and drawn tile
+        private const int DiscardTileWidth = 30; // 牌の幅
+        private const int DiscardTileHeight = 40; // 牌の高さ
+        private const int DiscardRows = 4; // 河の行数
+        private const int DiscardColumns = 6; // 河の列数
 
         public MainForm()
         {
@@ -33,7 +37,7 @@ namespace MahjongApp
             this.UpdateStyles();
 
 
-            InitializeTilePictureBoxes(); // Create PictureBoxes once
+            InitializeHandTilePictureBoxes(); // Create PictureBoxes once
 
             gameManager = new MahjongGameManager();
             // RefreshHandDisplayをコールバックとして設定 (UI更新用)
@@ -41,18 +45,18 @@ namespace MahjongApp
 
             // ゲーム開始 (非同期的に実行される可能性がある)
             // Use Task.Run or similar if StartGame blocks for long or needs background thread
-             gameManager.Test(); // Starts the game logic which should trigger the first RefreshHandDisplay
+            gameManager.Test(); // Starts the game logic which should trigger the first RefreshHandDisplay
 
-             // Register FormClosing event to dispose image cache
-             this.FormClosing += MainForm_FormClosing;
+            // Register FormClosing event to dispose image cache
+            this.FormClosing += MainForm_FormClosing;
         }
 
         /// <summary>
         /// 手牌表示用のPictureBoxを初期化し、フォームに追加します。
         /// </summary>
-        private void InitializeTilePictureBoxes()
+        private void InitializeHandTilePictureBoxes()
         {
-            TilePictureBoxes.Clear(); // Just in case
+            HandTilePictureBoxes.Clear(); // Just in case
             for (int i = 0; i < MaxHandTiles; i++)
             {
                 var pb = new PictureBox
@@ -61,10 +65,12 @@ namespace MahjongApp
                     SizeMode = PictureBoxSizeMode.StretchImage, // Adjust as needed
                     Visible = false, // Initially hidden
                     BorderStyle = BorderStyle.FixedSingle, // Optional: for visibility
-                    Tag = null // Will hold the Tile object
+                    Tag = null, // Will hold the Tile object
+                    BackColor = Color.Transparent,
+                    
                 };
                 pb.Click += TilePictureBox_Click; // Attach the single event handler
-                TilePictureBoxes.Add(pb);
+                HandTilePictureBoxes.Add(pb);
                 this.Controls.Add(pb); // Add to form's controls
             }
             Debug.WriteLine($"[UI] Initialized {MaxHandTiles} PictureBoxes.");
@@ -75,29 +81,29 @@ namespace MahjongApp
         /// </summary>
         private void RefreshHandDisplay()
         {
-             // Ensure UI updates run on the UI thread if called from background thread
-             if (this.InvokeRequired)
-             {
-                 this.Invoke(new Action(RefreshHandDisplay));
-                 return;
-             }
+            // Ensure UI updates run on the UI thread if called from background thread
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new Action(RefreshHandDisplay));
+                return;
+            }
 
             HumanPlayer player = gameManager.GetHumanPlayer();
             if (player == null)
             {
-                 Debug.WriteLine("[UI ERROR] Human player not found for UI update.");
-                 return; // Or handle appropriately
+                Debug.WriteLine("[UI ERROR] Human player not found for UI update.");
+                return; // Or handle appropriately
             }
 
             List<Tile> hand = player.Hand;
-            player.SortHand(); // Ensure hand is sorted before display (unless Riichi)
+            // player.SortHand(); // Ensure hand is sorted before display (unless Riichi)
 
             Debug.WriteLine($"[UI] Refreshing hand display for {hand.Count} tiles. IsTsumo: {player.IsTsumo}");
 
             // Update existing PictureBoxes
             for (int i = 0; i < MaxHandTiles; i++)
             {
-                var pb = TilePictureBoxes[i];
+                var pb = HandTilePictureBoxes[i];
                 if (i < hand.Count)
                 {
                     Tile tile = hand[i];
@@ -131,9 +137,9 @@ namespace MahjongApp
             int selectedOffset = isSelected ? SelectedOffsetY : 0;
             // ツモ牌 (手牌が14枚目で、かつツモ状態) の場合に少し右にずらす
             int drawnTileOffset = (isTsumoState && index == handCount - 1 && handCount % 3 == 2) ? DrawnTileOffsetX : 0;
-             // Note: Standard hand is 13 tiles, draw makes 14. Discard returns to 13.
-             // The drawn tile offset logic might need refinement based on exact display rules.
-             // Typically, the 14th tile is slightly separated.
+            // Note: Standard hand is 13 tiles, draw makes 14. Discard returns to 13.
+            // The drawn tile offset logic might need refinement based on exact display rules.
+            // Typically, the 14th tile is slightly separated.
 
             int x = HandStartX + index * TileWidth + drawnTileOffset;
             int y = HandStartY - selectedOffset;
@@ -154,59 +160,47 @@ namespace MahjongApp
 
                 Debug.WriteLine($"[UI] Tile clicked: {selectedTile.Name()}, Current Phase: {gameManager.CurrentPhase}");
 
+                bool IsDiscardActive = ((gameManager.CurrentPhase == GamePhase.DiscardPhase) && gameManager.IsHumanTurnFromTurnManager() && selectedTile.IsSelected);
+
                 // 現在のゲームフェーズと牌の状態に応じて処理
-                if (gameManager.CurrentPhase == GamePhase.DiscardPhase) // Check if it's discard phase
+                if (IsDiscardActive) // Check if it's discard phase
                 {
-                     // If the clicked tile was already selected, discard it
-                     if (selectedTile.IsSelected)
-                     {
-                         Debug.WriteLine($"[UI] Discarding selected tile: {selectedTile.Name()}");
-                         // Let GameManager/TurnManager handle the discard logic
-                         player.DiscardTile(selectedTile); // Perform discard action on player object
-                         RefreshHandDisplay(); // Update UI immediately after discard
-                         gameManager.NotifyHumanDiscardOfTurnManager(); // Notify game logic discard is done
-                     }
-                     // If the clicked tile was not selected, select it (and deselect others)
-                     else
-                     {
-                         Debug.WriteLine($"[UI] Selecting tile: {selectedTile.Name()}");
-                         // Deselect all other tiles in hand
-                         foreach (var tileInHand in player.Hand)
-                         {
-                             tileInHand.IsSelected = false;
-                         }
-                         // Select the clicked tile
-                         selectedTile.IsSelected = true;
-                         RefreshHandDisplay(); // Update UI to show selection change
-                     }
+                    Debug.WriteLine($"[UI] Discarding selected tile: {selectedTile.Name()}");
+                    // Let GameManager/TurnManager handle the discard logic
+                    player.DiscardTile(selectedTile); // Perform discard action on player object
+                    RefreshHandDisplay(); // Update UI immediately after discard
+                    gameManager.NotifyHumanDiscardOfTurnManager(); // Notify game logic discard is done
                 }
-                 // Allow selection changes even outside discard phase? Maybe not.
+                // If the clicked tile was not selected, select it (and deselect others)
+                else
+                {
+                    Debug.WriteLine($"[UI] Selecting tile: {selectedTile.Name()}");
+                    // Deselect all other tiles in hand
+                    foreach (var tileInHand in player.Hand)
+                    {
+                        tileInHand.IsSelected = false;
+                    }
+                    // Select the clicked tile
+                    selectedTile.IsSelected = true;
+                    RefreshHandDisplay(); // Update UI to show selection change
+                }
+
+                // Allow selection changes even outside discard phase? Maybe not.
                 // else if (selectedTile.IsSelected) // Allow de-selection anytime?
                 // {
                 //     selectedTile.IsSelected = false;
                 //     RefreshHandDisplay();
                 // }
-                else
-                {
-                    // Not the discard phase, perhaps allow selection for calls (Chi/Pon/Kan)?
-                    // Or just ignore clicks outside the discard phase.
-                     Debug.WriteLine("[UI] Clicked outside of discard phase.");
-
-                     // Optionally, still allow selection visualisation
-                     // foreach (var tileInHand in player.Hand) { tileInHand.IsSelected = false; }
-                     // selectedTile.IsSelected = true;
-                     // RefreshHandDisplay();
-                }
             }
         }
 
-         /// <summary>
-         /// Form closing event to clean up resources.
-         /// </summary>
+        /// <summary>
+        /// Form closing event to clean up resources.
+        /// </summary>
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-             Debug.WriteLine("[UI] Form closing, disposing image cache.");
-             TileImageCache.DisposeCache(); // Dispose cached images
+            Debug.WriteLine("[UI] Form closing, disposing image cache.");
+            TileImageCache.DisposeCache(); // Dispose cached images
         }
 
         // Removed DisplayPlayerHand() as RefreshHandDisplay() now handles updates.

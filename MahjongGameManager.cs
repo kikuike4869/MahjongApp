@@ -89,7 +89,7 @@ namespace MahjongApp
                     else // AI Turn
                     {
                         EnableHandInteractionCallback?.Invoke(false); // <<< AIターン中は操作不可
-                        // await Task.Delay(500); // Thinking delay
+                        await Task.Delay(10000); // Thinking delay
                         TurnManager.DiscardByAI();
                         RefreshHandDisplayCallback?.Invoke();
                         Debug.WriteLine($"[Game] AI discard completed.");
