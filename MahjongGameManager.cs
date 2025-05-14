@@ -71,6 +71,8 @@ namespace MahjongApp
         public async Task StartGame()
         {
             Debug.WriteLine("[Game] Starting game...");
+            CurrentRound = 1;
+
             CurrentPhase = GamePhase.InitRound;
             TurnManager.StartNewRound();
             EnableHandInteractionCallback?.Invoke(false); // <<< 初期状態は操作不可
@@ -183,29 +185,6 @@ namespace MahjongApp
         public List<Player>? GetPlayers()
         {
             return Players;
-        }
-        public string GetCurrentRoundDescription()
-        {
-            // 例: "東1局" や "南2局" などを返す
-            // (場風と局数、親のプレイヤー情報から算出)
-            // このロジックは麻雀のルールに基づいて正確に実装する必要があります。
-            // ここでは仮の文字列を返します。
-            var dealer = Players.FirstOrDefault(p => p.IsDealer);
-            string windName = "東"; // 仮: 現在の場風を取得するロジックが必要
-            int roundInWind = 1;    // 仮: 場風の中での局数を取得するロジックが必要
-
-            if (dealer != null)
-            {
-                // 実際の場風と局の計算 (東場の1局目なら DealerIndex と RoundNumber (仮の変数) を使う)
-                // 4局ごとに場風が進む、親が連荘したら局数は変わらない、など。
-                // ここでは、非常に単純化した例として、DealerIndex から風を仮定。
-                // Wind[] winds = { Wind.East, Wind.South, Wind.West, Wind.North }; // (Windがenumの場合)
-                // string[] windChars = { "東", "南", "西", "北" };
-                // windName = windChars[ ( (DealerIndex + RoundNumber -1 )/4 ) % 4 ]; // かなり適当な計算例
-                // roundInWind = (RoundNumber-1) % 4 + 1;
-            }
-            // return $"{windName}{roundInWind}局";
-            return $"東1局"; // より具体的な実装までは仮置き
         }
 
         public int GetHonba()

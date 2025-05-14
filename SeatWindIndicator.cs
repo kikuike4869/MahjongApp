@@ -35,16 +35,14 @@ namespace MahjongApp
 
             int centerX = ScreenWidth / 2;
             int centerY = ScreenHeight / 2;
+            // int offset = IndicatorSize * 1 / 4;
+            int offset = IndicatorSize * 1 / 3;
 
             // 配置：東（Bottom）、南（Right）、西（Top）、北（Left）
-            // seatWindIndicators[0].Location = new Point(0, DiscardTileWidth * 6 - IndicatorSize);
-            // seatWindIndicators[1].Location = new Point(DiscardTileWidth * 6 - IndicatorSize, DiscardTileWidth * 6);
-            // seatWindIndicators[2].Location = new Point(DiscardTileWidth * 6 - IndicatorSize, IndicatorSize);
-            // seatWindIndicators[3].Location = new Point(IndicatorSize, 0);
-            seatWindIndicators[0].Location = new Point(0, DiscardTileWidth * 6 - IndicatorSize);
-            seatWindIndicators[1].Location = new Point(DiscardTileWidth * 6 - IndicatorSize, DiscardTileWidth * 6 - IndicatorSize);
-            seatWindIndicators[2].Location = new Point(DiscardTileWidth * 6 - IndicatorSize, 0);
-            seatWindIndicators[3].Location = new Point(0, 0);
+            seatWindIndicators[0].Location = new Point(offset, DiscardTileWidth * 6 - IndicatorSize - offset);
+            seatWindIndicators[1].Location = new Point(DiscardTileWidth * 6 - IndicatorSize - offset, DiscardTileWidth * 6 - IndicatorSize - offset);
+            seatWindIndicators[2].Location = new Point(DiscardTileWidth * 6 - IndicatorSize - offset, offset);
+            seatWindIndicators[3].Location = new Point(offset, offset);
         }
 
         public void UpdateSeatWindIndicators(List<Wind> winds, int dealerSeat)

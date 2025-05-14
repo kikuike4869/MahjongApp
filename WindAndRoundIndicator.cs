@@ -12,7 +12,7 @@ namespace MahjongApp
             this.TextAlign = ContentAlignment.MiddleCenter;
             this.BackColor = Color.Black;
             this.ForeColor = Color.DodgerBlue;
-            this.Font = new Font("HGP行書体", 14, FontStyle.Bold);
+            this.Font = new Font("HGP行書体", 17, FontStyle.Bold);
             this.Size = new Size(Width, Height);
             this.Location = new Point((Config.Instance.DiscardTileWidth * 6 - Width) / 2, (Config.Instance.DiscardTileWidth * 6) / 2 - Height);
         }

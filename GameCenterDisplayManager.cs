@@ -59,12 +59,17 @@ namespace MahjongApp
                 // BackColor = Color.FromArgb(128, Color.DarkSlateGray), // 半透明にして領域確認 (デバッグ用)
                 // BackColor = Color.DarkSlateGray,
             };
+
             parentControl.Controls.Add(centerPanel);
             centerPanel.BringToFront(); // 河などの上に表示されるように
 
             // --- 各情報ラベルの初期化 ---
 
             lblSeatWinds = new SeatWindIndicators();
+            centerPanel.Controls.Add(lblSeatWinds);
+
+            lblSeatWinds = new SeatWindIndicators();
+            // centerPanel.Controls.Add(lblSeatWinds);
             List<SeatWindIndicator> lblSeatWindList = lblSeatWinds.GetSeatWindControls();
             foreach (var lblSeatWind in lblSeatWindList) { centerPanel.Controls.Add(lblSeatWind); }
 
