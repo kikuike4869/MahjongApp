@@ -12,45 +12,72 @@ namespace MahjongApp
 
         public SeatWindIndicators()
         {
-            int IndicatorSize = 40;
+            int IndicatorSize = 40; // このサイズは固定で良いでしょう
             seatWindIndicators = new List<SeatWindIndicator>();
-            var angles = new List<float> { 0, 270, 180, 90 };
-            // 4方向のプレイヤーための風インジケーター
+            var angles = new List<float> { 0, 270, 180, 90 }; // 東、南、西、北 の順に対応 (0:自分(下), 1:右, 2:対面(上), 3:左)
+
+            // 描画順を考慮して逆順 (北から) で追加または、BringToFront/SendToBackで調整
             for (int i = 0; i < 4; i++)
             {
                 var seatWindIndicator = new SeatWindIndicator()
                 {
-                    LabelText = Winds[i],
-                    RotationAngle = angles[i],
+                    LabelText = Winds[i],    // 初期テキスト (Updateで上書きされる)
+                    RotationAngle = angles[i], // 初期角度 (Updateで変わるものではない)
                     TextColor = Color.LightGray,
                     LabelFont = new Font("HGP行書体", 20, FontStyle.Bold),
                     Size = new Size(IndicatorSize, IndicatorSize),
                     BackgroundColor = Color.Black
                 };
                 seatWindIndicators.Add(seatWindIndicator);
-                Controls.Add(seatWindIndicator);
-                // seatWindIndicators[i].Invalidate();
+                this.Controls.Add(seatWindIndicator); // 自分自身 (SeatWindIndicators) の Controls に追加
                 seatWindIndicator.BringToFront();
             }
 
-            int centerX = ScreenWidth / 2;
-            int centerY = ScreenHeight / 2;
-            // int offset = IndicatorSize * 1 / 4;
-            int offset = IndicatorSize * 1 / 3;
-
-            // 配置：東（Bottom）、南（Right）、西（Top）、北（Left）
-            seatWindIndicators[0].Location = new Point(offset, DiscardTileWidth * 6 - IndicatorSize - offset);
-            seatWindIndicators[1].Location = new Point(DiscardTileWidth * 6 - IndicatorSize - offset, DiscardTileWidth * 6 - IndicatorSize - offset);
-            seatWindIndicators[2].Location = new Point(DiscardTileWidth * 6 - IndicatorSize - offset, offset);
-            seatWindIndicators[3].Location = new Point(offset, offset);
+            this.SizeChanged += (sender, e) => LayoutIndicators();
         }
 
-        public void UpdateSeatWindIndicators(List<Wind> winds, int dealerSeat)
+        public void LayoutIndicators()
         {
+            if (seatWindIndicators == null || seatWindIndicators.Count != 4) return;
+
+            int indicatorSize = seatWindIndicators[0].Width; // IndicatorSizeは同じ
+            int parentWidth = this.Width;   // SeatWindIndicators自身の幅
+            int parentHeight = this.Height; // SeatWindIndicators自身の高さ
+
+            int centerPanelEdgeLength = this.Width; // もし正方形なら this.Height も同じ
+            if (parentWidth == 0 || parentHeight == 0) return; // サイズ未確定の場合は何もしない
+
+            // offset は、親パネルの端からどれだけ内側に配置するか
+            int offset = indicatorSize / 3; // 元のコードに近いオフセット
+
+            seatWindIndicators[0].Location = new Point(offset, centerPanelEdgeLength - indicatorSize - offset); // 左下 (東)
+            seatWindIndicators[1].Location = new Point(centerPanelEdgeLength - indicatorSize - offset, centerPanelEdgeLength - indicatorSize - offset); // 右下 (南)
+            seatWindIndicators[2].Location = new Point(centerPanelEdgeLength - indicatorSize - offset, offset); // 右上 (西)
+            seatWindIndicators[3].Location = new Point(offset, offset); // 左上 (北)
+
+
+            foreach (var swi in seatWindIndicators)
+            {
+                swi.Invalidate(); // 再描画を促す
+            }
+        }
+
+        public void UpdateSeatWindIndicators(List<Wind> seatWinds, int dealerSeat)
+        {
+            if (seatWindIndicators == null || seatWindIndicators.Count != 4 || seatWinds == null || seatWinds.Count != 4)
+            {
+                // Debug.WriteLine("[SeatWindIndicators] Update failed: Invalid state or arguments.");
+                return;
+            }
+
             for (int i = 0; i < seatWindIndicators.Count; i++)
             {
-                seatWindIndicators[i].LabelText = this.Winds[(int)winds[i]];
-                if ((int)winds[i] == dealerSeat)
+                // i は表示位置に対応 (0:下, 1:右, 2:上, 3:左 と仮定)
+                // seatWinds[i] はその位置のプレイヤーの自風
+                Wind playerWind = seatWinds[i]; // seatWinds はプレイヤーの物理的な席順 (0:自分, 1:右, 2:対面, 3:左) の自風リストであるべき
+                seatWindIndicators[i].LabelText = this.Winds[(int)playerWind];
+
+                if (i == dealerSeat) // i が親の SeatIndex と一致する場合
                 {
                     seatWindIndicators[i].TextColor = Color.Black;
                     seatWindIndicators[i].BackgroundColor = Color.Red;
@@ -63,8 +90,8 @@ namespace MahjongApp
                 seatWindIndicators[i].Invalidate();
             }
         }
-        public List<SeatWindIndicator> GetSeatWindControls() { return seatWindIndicators; }
 
+        public List<SeatWindIndicator> GetSeatWindControls() { return seatWindIndicators; }
     }
 
     public class SeatWindIndicator : Control

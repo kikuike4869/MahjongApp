@@ -61,23 +61,29 @@ namespace MahjongApp
             };
 
             parentControl.Controls.Add(centerPanel);
-            centerPanel.BringToFront(); // 河などの上に表示されるように
+            // centerPanel.BringToFront(); // 河などの上に表示されるように
 
             // --- 各情報ラベルの初期化 ---
 
-            lblSeatWinds = new SeatWindIndicators();
-            centerPanel.Controls.Add(lblSeatWinds);
+            // lblSeatWinds = new SeatWindIndicators();
+            // centerPanel.Controls.Add(lblSeatWinds);
 
             lblSeatWinds = new SeatWindIndicators();
             // centerPanel.Controls.Add(lblSeatWinds);
-            List<SeatWindIndicator> lblSeatWindList = lblSeatWinds.GetSeatWindControls();
-            foreach (var lblSeatWind in lblSeatWindList) { centerPanel.Controls.Add(lblSeatWind); }
+            // List<SeatWindIndicator> lblSeatWindList = lblSeatWinds.GetSeatWindControls();
+            // foreach (var lblSeatWind in lblSeatWindList) { centerPanel.Controls.Add(lblSeatWind); }
+            lblSeatWinds.Size = new Size(panelWidth, panelHeight);
+            centerPanel.Controls.Add(lblSeatWinds);
 
             lblCurrentWindAndRound = new WindAndRoundIndicator();
+            lblCurrentWindAndRound.Location = new Point((centerPanel.Width - lblCurrentWindAndRound.Width) / 2, (centerPanel.Height / 2) - lblCurrentWindAndRound.Height);
             centerPanel.Controls.Add(lblCurrentWindAndRound);
+            lblCurrentWindAndRound.BringToFront();
 
             lblRemainingTiles = new RemainingTileIndicator();
+            lblRemainingTiles.Location = new Point((centerPanel.Width - lblRemainingTiles.Width) / 2, (centerPanel.Height / 2));
             centerPanel.Controls.Add(lblRemainingTiles);
+            lblRemainingTiles.BringToFront();
         }
 
         public void RefreshDisplay()
