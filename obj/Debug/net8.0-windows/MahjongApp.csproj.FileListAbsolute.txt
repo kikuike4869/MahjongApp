@@ -50,7 +50,6 @@ C:\Users\12811096\Documents\work\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.
 C:\Users\12811096\Documents\work\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.GeneratedMSBuildEditorConfig.editorconfig
 C:\Users\12811096\Documents\work\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.AssemblyInfoInputs.cache
 C:\Users\12811096\Documents\work\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.AssemblyInfo.cs
-C:\Users\12811096\Documents\work\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.csproj.CoreComwallInputs.cache
 C:\Users\12811096\Documents\work\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.sourcelink.json
 C:\Users\12811096\Documents\work\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.dll
 C:\Users\12811096\Documents\work\MahjongApp\obj\Debug\net8.0-windows\refint\MahjongApp.dll
@@ -65,3 +64,4 @@ C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\bin\Debug\net8.0-windows\Ma
 C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.genruntimeconfig.cache
 C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\obj\Debug\net8.0-windows\ref\MahjongApp.dll
 C:\Users\kikuike\Dropbox\VisualStudio2022\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.csproj.CoreCompileInputs.cache
+C:\Users\12811096\Documents\work\MahjongApp\obj\Debug\net8.0-windows\MahjongApp.csproj.CoreCompileInputs.cache

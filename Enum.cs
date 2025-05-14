@@ -1,7 +1,7 @@
 
 namespace MahjongApp
 {
-    public enum Wind { East, South, West, North };
+    public enum Wind { East = 0, South = 1, West = 2, North = 3 };
     public enum Suit { Manzu, Pinzu, Souzu, Honor };
     public enum MeldType { Chi, Pon, Kan, Kakan, Ankan, Minkan }
 

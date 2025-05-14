@@ -20,11 +20,14 @@ namespace MahjongApp
         // int HonbaCount;
         // int RiichiSticks;
         int DealerIndex;
+        List<Wind> SeatWinds;
+        Wind CurrentWind;
+        int CurrentRound;
 
         // Callback for UI updates
         Action? RefreshHandDisplayCallback;
         Action? RefreshDiscardWallDisplayCallback;
-        Action? RefreshGameStatusDisplays;
+        Action? RefreshGameCenterDisplays;
         // Callback for enabling/disabling UI hand interaction
         Action<bool>? EnableHandInteractionCallback; // <<< 追加
 
@@ -42,17 +45,26 @@ namespace MahjongApp
         void InitializeGame()
         {
             DealerIndex = 0;
-            int numPlayers = 4;
+            CurrentWind = Wind.East;
+            SeatWinds = new List<Wind>(Config.Instance.NumberOfPlayers);
+            int numPlayers = Config.Instance.NumberOfPlayers;
+            Wind humanWind = Wind.East;
             if (Players == null) Players = new List<Player>(numPlayers);
             Players.Clear();
             for (int i = 0; i < numPlayers; i++)
             {
                 Player newPlayer;
-                if (i == 0) { newPlayer = new HumanPlayer { SeatIndex = i, Name = $"Player {i} (Human)" }; }
+                if (i == 0)
+                {
+                    newPlayer = new HumanPlayer { SeatIndex = i, Name = $"Player {i} (Human)" };
+                }
                 else { newPlayer = new AIPlayer { SeatIndex = i, Name = $"Player {i} (AI)" }; }
                 newPlayer.IsDealer = (i == DealerIndex);
                 Players.Add(newPlayer);
             }
+
+            for (int i = 0; i < numPlayers; i++) { SeatWinds.Add((Wind)(((int)humanWind + i) % numPlayers)); }
+
             Debug.WriteLine($"[Game] Initialized {Players.Count} players. Dealer is Player {DealerIndex}.");
         }
 
@@ -63,7 +75,7 @@ namespace MahjongApp
             TurnManager.StartNewRound();
             EnableHandInteractionCallback?.Invoke(false); // <<< 初期状態は操作不可
             RefreshHandDisplayCallback?.Invoke();
-            RefreshGameStatusDisplays?.Invoke();
+            RefreshGameCenterDisplays?.Invoke();
 
             while (Wall.Count > 0 && CurrentPhase != GamePhase.GameOver)
             {
@@ -74,7 +86,7 @@ namespace MahjongApp
                     EnableHandInteractionCallback?.Invoke(false); // <<< Drawフェーズも操作不可
                     TurnManager.StartTurn();
                     RefreshHandDisplayCallback?.Invoke();
-                    RefreshGameStatusDisplays?.Invoke();
+                    RefreshGameCenterDisplays?.Invoke();
 
                     // --- Tsumo/Kan Check ---
                     // If win/kan happens, skip discard phase logic below
@@ -206,21 +218,20 @@ namespace MahjongApp
             return 0; // 仮: this.RiichiSticks; を返す (RiichiSticksの管理ロジックが必要)
         }
 
-        public int GetCurrentTurnSeat() // TurnManagerから取得できる
-        {
-            return TurnManager.GetCurrentTurnSeat();
-        }
+        public int GetCurrentTurnSeat() { return TurnManager.GetCurrentTurnSeat(); }
 
-        public int GetRemainingTileCount() // Wallから取得できる
-        {
-            return Wall.Count; // WallクラスにCountプロパティがある前提
-        }
+        public List<Wind> GetSeatWinds() { return SeatWinds; }
+        public int GetDealerSeat() { return TurnManager.GetDealerSeat(); }
+        public Wind GetCurrentWind() { return CurrentWind; }
+        public int GetCurrentRound() { return CurrentRound; }
 
-        public void SetUpdateUICallBack(Action refreshHandDisplay, Action refreshDiscardWallDisplay, Action refreshGameStatusDisplays)
+        public int GetRemainingTileCount() { return Wall.Count; }
+
+        public void SetUpdateUICallBack(Action refreshHandDisplay, Action refreshDiscardWallDisplay, Action refreshGameCenterDisplays)
         {
             RefreshHandDisplayCallback = refreshHandDisplay;
             RefreshDiscardWallDisplayCallback = refreshDiscardWallDisplay;
-            RefreshGameStatusDisplays = refreshGameStatusDisplays;
+            RefreshGameCenterDisplays = refreshGameCenterDisplays;
         }
 
 

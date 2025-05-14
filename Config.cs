@@ -8,6 +8,10 @@ namespace MahjongApp
         public Size ScreenSize { get; set; }
         public int NumberOfPlayers { get; set; }
         public int NumberOfFirstHands { get; set; }
+        public int DiscardTileWidth { get; set; }
+        public int DiscardTileHeight { get; set; }
+        public int TileWidth { get; set; }
+        public int TileHeight { get; set; }
 
         public static Config Instance
         {
@@ -25,7 +29,10 @@ namespace MahjongApp
             ScreenSize = new Size(width, height);
             NumberOfPlayers = 4;
             NumberOfFirstHands = 13;
-
+            DiscardTileWidth = 36;
+            DiscardTileHeight = 48;
+            TileWidth = 60;
+            TileHeight = 80;
         }
     }
 }

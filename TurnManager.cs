@@ -212,6 +212,8 @@ namespace MahjongApp
             return CurrentTurnSeat;
         }
 
+        public int GetDealerSeat() { return DealerSeat; }
+
         // --- Add methods for Game Logic ---
         // public bool CheckWinCondition(Player player, Tile checkTile, bool isTsumo) { /* ... */ return false; }
         // public List<KanOption> CheckSelfKanOptions(Player player, Tile drawnTile) { /* ... */ return new List<KanOption>(); }
