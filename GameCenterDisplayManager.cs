@@ -3,28 +3,27 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Linq; // プレイヤー情報の処理で使用する可能性
+using System.Linq;
 
 namespace MahjongApp
 {
     public class GameCenterDisplayManager
     {
-        private Panel centerPanel; // 全ての情報を表示するコンテナパネル
+        private Panel centerPanel; // 中央の情報用パネル
 
         private SeatWindIndicators lblSeatWinds;
         private WindAndRoundIndicator lblCurrentWindAndRound;
-        private RemainingTileIndicator lblRemainingTiles; // 例: 残り70枚
+        private RemainingTileIndicator lblRemainingTiles;
+        private PlayerScoreDisplays lblPlayerScores; // ★PlayerScoreDisplays を追加
 
+        private Control parentControl; // このマネージャがUIを追加する先のコントロール (MainForm)
 
-        private Control parentControl; // このマネージャが管理するUIを追加する先のコントロール
-
-        // 情報取得のためのコールバック (MainForm経由でGameManagerなどから情報取得)
         private Func<List<Wind>> GetSeatWindsCallback;
         private Func<int> GetDealerSeatCallback;
         private Func<Wind> GetCurrentWindCallback;
         private Func<int> GetCurrentRoundCallback;
         private Func<int> GetRemainingTilesCallback;
-        private Func<List<Player>> GetPlayersCallback; // 全プレイヤーのリストを取得
+        private Func<List<Player>?> GetPlayersCallback; // ★null許容に変更
 
         public GameCenterDisplayManager(
             Control parent,
@@ -33,7 +32,7 @@ namespace MahjongApp
             Func<Wind> currentWindCb,
             Func<int> currentRoundCb,
             Func<int> remainingTilesCb,
-            Func<List<Player>> playersCb)
+            Func<List<Player>?> playersCb) // ★null許容に変更
         {
             parentControl = parent;
 
@@ -49,76 +48,123 @@ namespace MahjongApp
 
         private void InitializeControls()
         {
+            // --- 中央パネルの初期化 ---
             int panelWidth = Config.Instance.DiscardTileWidth * 6;
             int panelHeight = Config.Instance.DiscardTileWidth * 6;
             centerPanel = new Panel
             {
-                // サイズや位置はMainFormから設定するか、ここで固定値を仮置き
-                Size = new Size(panelWidth, panelHeight), // 仮サイズ
-                Location = new Point((Config.Instance.ScreenSize.Width - panelWidth) / 2, (Config.Instance.ScreenSize.Height - panelHeight - Config.Instance.TileHeight) / 2),
-                // BackColor = Color.FromArgb(128, Color.DarkSlateGray), // 半透明にして領域確認 (デバッグ用)
-                // BackColor = Color.DarkSlateGray,
+                Size = new Size(panelWidth, panelHeight),
+                Location = new Point(
+                    (parentControl.ClientSize.Width - panelWidth) / 2,
+                    (parentControl.ClientSize.Height - panelHeight - Config.Instance.TileHeight) / 2
+                    ),
+                // BackColor = Color.DarkSlateGray, // デバッグ用
             };
-
             parentControl.Controls.Add(centerPanel);
-            // centerPanel.BringToFront(); // 河などの上に表示されるように
+            // centerPanel.BringToFront(); // 他要素との兼ね合いで調整
 
-            // --- 各情報ラベルの初期化 ---
-
-            // lblSeatWinds = new SeatWindIndicators();
-            // centerPanel.Controls.Add(lblSeatWinds);
-
+            // --- 中央パネル内の要素 ---
             lblSeatWinds = new SeatWindIndicators();
-            // centerPanel.Controls.Add(lblSeatWinds);
-            // List<SeatWindIndicator> lblSeatWindList = lblSeatWinds.GetSeatWindControls();
-            // foreach (var lblSeatWind in lblSeatWindList) { centerPanel.Controls.Add(lblSeatWind); }
             lblSeatWinds.Size = new Size(panelWidth, panelHeight);
             centerPanel.Controls.Add(lblSeatWinds);
 
+
+            // --- PlayerScoreDisplays の初期化 ---
+            lblPlayerScores = new PlayerScoreDisplays
+            {
+                Parent = this.parentControl, // 親を MainForm に設定
+                // Dock = DockStyle.Fill, // これだと centerPanel などと重なる可能性
+                Size = this.parentControl.ClientSize, // MainForm全体を対象にレイアウトさせる
+                BackColor = Color.Transparent // PlayerScoreDisplays自体の背景は透明に
+            };
+            lblPlayerScores.Location = new Point(
+                (parentControl.ClientSize.Width - lblPlayerScores.Width) / 2,
+                (parentControl.ClientSize.Height - lblPlayerScores.Height - Config.Instance.TileHeight) / 2
+            );
+            parentControl.Controls.Add(lblPlayerScores);
+            lblPlayerScores.BringToFront(); // 他のUI要素（特にcenterPanel）より奥に配置する
+
+            // // 初期レイアウトの実行
+            // lblPlayerScores.LayoutDisplays();
+
             lblCurrentWindAndRound = new WindAndRoundIndicator();
-            lblCurrentWindAndRound.Location = new Point((centerPanel.Width - lblCurrentWindAndRound.Width) / 2, (centerPanel.Height / 2) - lblCurrentWindAndRound.Height);
+            lblCurrentWindAndRound.Location = new Point(
+                (centerPanel.Width - lblCurrentWindAndRound.Width) / 2,
+                (centerPanel.Height / 2) - lblCurrentWindAndRound.Height
+            );
             centerPanel.Controls.Add(lblCurrentWindAndRound);
             lblCurrentWindAndRound.BringToFront();
 
             lblRemainingTiles = new RemainingTileIndicator();
-            lblRemainingTiles.Location = new Point((centerPanel.Width - lblRemainingTiles.Width) / 2, (centerPanel.Height / 2));
+            lblRemainingTiles.Location = new Point(
+                (centerPanel.Width - lblRemainingTiles.Width) / 2,
+                (centerPanel.Height / 2)
+            );
             centerPanel.Controls.Add(lblRemainingTiles);
             lblRemainingTiles.BringToFront();
+
+
+
+            // MainForm のリサイズイベントを拾ってレイアウトを再実行できるようにする
+            // (より堅牢なのは、MainForm側からこのManagerのUpdateLayoutを呼ぶこと)
+            parentControl.Resize += (sender, e) =>
+            {
+                if (lblPlayerScores != null)
+                {
+                    lblPlayerScores.Size = parentControl.ClientSize; // サイズ追従
+                    lblPlayerScores.LayoutDisplays();
+                }
+                // centerPanelの位置も再計算が必要ならここで行うか、専用メソッドで
+                centerPanel.Location = new Point(
+                    (parentControl.ClientSize.Width - centerPanel.Width) / 2,
+                    (parentControl.ClientSize.Height - centerPanel.Height - Config.Instance.TileHeight) / 2
+                );
+            };
         }
 
         public void RefreshDisplay()
         {
-            if (centerPanel.InvokeRequired)
+            if (parentControl.InvokeRequired) // 親コントロールのInvokeRequiredをチェック
             {
-                centerPanel.Invoke(new Action(RefreshDisplay));
+                parentControl.Invoke(new Action(RefreshDisplay));
                 return;
             }
 
+            // 中央パネル内の要素の更新
             lblSeatWinds.UpdateSeatWindIndicators(GetSeatWindsCallback.Invoke(), GetDealerSeatCallback.Invoke());
             lblCurrentWindAndRound.UpdateIndicator(GetCurrentWindCallback.Invoke(), GetCurrentRoundCallback.Invoke());
             lblRemainingTiles.UpdateRemainingTiles(GetRemainingTilesCallback?.Invoke() ?? -1);
+
+            // 点数表示の更新
+            lblPlayerScores?.UpdateScores(GetPlayersCallback?.Invoke());
         }
-
-        /// <summary>
-        /// centerPanelの位置とサイズを調整します。MainFormのリサイズ時などに呼び出します。
-        /// </summary>
-        // public void UpdateLayout(Size parentClientSize)
-        // {
-        //     // centerPanelを中央に配置する例
-        //     centerPanel.Location = new Point((parentClientSize.Width - centerPanel.Width) / 2,
-        //                                     (parentClientSize.Height - centerPanel.Height) / 2);
-        //     // 必要であれば、centerPanel内のラベルの再配置もここで行う
-        // }
-
 
         public void ClearControls()
         {
+            // parentControl.Resize イベントハンドラの解除
+            parentControl.Resize -= (sender, e) =>
+            {
+                if (lblPlayerScores != null)
+                {
+                    lblPlayerScores.Size = parentControl.ClientSize;
+                    lblPlayerScores.LayoutDisplays();
+                }
+                centerPanel.Location = new Point( /* ... */ );
+            };
+
+            if (lblPlayerScores != null)
+            {
+                parentControl.Controls.Remove(lblPlayerScores);
+                lblPlayerScores.Dispose();
+                lblPlayerScores = null;
+            }
             if (centerPanel != null)
             {
                 parentControl.Controls.Remove(centerPanel);
-                centerPanel.Dispose();
+                centerPanel.Dispose(); // centerPanel内部のコントロールも一緒にDisposeされる
                 centerPanel = null;
             }
+            // lblSeatWinds など、centerPanelの子だったものはcenterPanel.Dispose()で一緒に処理される
         }
     }
 }

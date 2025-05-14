@@ -40,36 +40,51 @@ namespace MahjongApp
         {
             Debug.WriteLine("[Turn] Starting New Round");
             TurnCount = 0;
-            CurrentTurnSeat = DealerSeat; // Reset turn to dealer
+            CurrentTurnSeat = DealerSeat; // 親からスタート (DealerSeatはUI基準のインデックス)
             LastDiscardedTile = null;
 
-            Wall.InitializeWall(); // Initialize and shuffle the wall
+            Wall.InitializeWall();
 
-            // Initial draw (Haipai)
-            // Assuming Config class or constant defines initial hand size
-            int initialHandSize = 13; // Standard initial hand size
-            foreach (Player player in Players)
+            int initialHandSize = Config.Instance.NumberOfFirstHands; // Configから取得
+            foreach (Player player in Players) // PlayersリストはUI基準の並び
             {
-                player.Hand.Clear(); // Clear previous hand
+                player.Hand.Clear();
                 player.Discards.Clear();
                 player.Melds.Clear();
-                player.IsRiichi = false; // Reset status flags
+                player.IsRiichi = false;
                 player.IsTsumo = false;
-                // player.HasDeclaredRiichi = false; // Reset if using this flag
 
                 for (int i = 0; i < initialHandSize; i++)
                 {
                     if (Wall.Count > 0)
-                        player.Draw(Wall.Draw()); // Use player's Draw method
+                        player.Draw(Wall.Draw());
                     else
-                        Debug.WriteLine("[ERROR] Wall empty during initial draw!"); // Handle error
+                        Debug.WriteLine("[ERROR] Wall empty during initial draw!");
                 }
-                player.IsTsumo = false; // Not in Tsumo state after initial draw
+                player.IsTsumo = false;
                 player.SortHand();
             }
-
             Debug.WriteLine("[Turn] Initial hands dealt.");
-            // Don't call StartTurn here, GameManager controls the flow starting with the dealer's turn.
+        }
+
+        // StartTurn, DiscardByAI, DiscardTile, NextTurn, EndRound, IsHumanTurn は
+        // CurrentTurnSeat がUI基準のインデックスであることを意識すれば、大きな変更は不要。
+
+        public int GetCurrentTurnSeat() // UI基準のSeatIndexを返す
+        {
+            return CurrentTurnSeat;
+        }
+
+        public int GetDealerSeat() // UI基準のSeatIndexを返す
+        {
+            return DealerSeat;
+        }
+
+        // GameManagerからの親変更に対応するため
+        public void SetDealerSeat(int dealerSeatIndex)
+        {
+            this.DealerSeat = dealerSeatIndex;
+            this.CurrentTurnSeat = dealerSeatIndex;
         }
 
         /// <summary>
@@ -203,16 +218,6 @@ namespace MahjongApp
         // Removed SetHumanPlayerDiscardCallback and NotifyHumanDiscard
         // GameManager now handles waiting for human input via its own mechanism
 
-
-        /// <summary>
-        /// 現在のターンプレイヤーの座席インデックスを取得します。
-        /// </summary>
-        public int GetCurrentTurnSeat()
-        {
-            return CurrentTurnSeat;
-        }
-
-        public int GetDealerSeat() { return DealerSeat; }
 
         // --- Add methods for Game Logic ---
         // public bool CheckWinCondition(Player player, Tile checkTile, bool isTsumo) { /* ... */ return false; }

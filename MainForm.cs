@@ -78,10 +78,9 @@ namespace MahjongApp
             () => gameManager.GetDealerSeat(),
             () => gameManager.GetCurrentWind(),
             () => gameManager.GetCurrentRound(),
-            () => gameManager.GetRemainingTileCount(), // RemainingTiles
-            () => gameManager.GetPlayers() // Players
+            () => gameManager.GetRemainingTileCount(),
+            () => gameManager.GetPlayers()
         );
-            // gameCenterDisplayManager.UpdateLayout(this.ClientSize); // 初期レイアウト
 
             gameManager.Test(); // ゲーム開始 (DisplayManager初期化後)
         }
