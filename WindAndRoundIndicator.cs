@@ -6,8 +6,8 @@ namespace MahjongApp
         int Round = 1;
         public WindAndRoundIndicator()
         {
-            int Width = 70;
-            int Height = 35;
+            int Width = 72;
+            int Height = 36;
             this.Text = $"{this.Wind}{this.Round}局";
             this.TextAlign = ContentAlignment.MiddleCenter;
             this.BackColor = Color.Black;

@@ -35,6 +35,11 @@ namespace MahjongApp
 
             this.SizeChanged += (sender, e) => LayoutIndicators();
         }
+        
+        public List<SeatWindIndicator> GetSeatWindIndicators()
+        {
+            return seatWindIndicators;
+        }
 
         public void LayoutIndicators()
         {

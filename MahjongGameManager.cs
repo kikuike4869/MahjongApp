@@ -130,11 +130,14 @@ namespace MahjongApp
                     else // AI Turn
                     {
                         EnableHandInteractionCallback?.Invoke(false);
-                        await Task.Delay(1000); // AIの思考時間を模擬 (実際のAIロジックはここに入る)
+                        await Task.Delay(2000); // AIの思考時間を模擬 (実際のAIロジックはここに入る)
                         TurnManager.DiscardByAI();
                         RefreshDiscardWallDisplayCallback?.Invoke();
                         Debug.WriteLine($"[Game] AI discard completed.");
                     }
+                    Player currentPlayer = Players[currentTurnPlayerSeatIndex];
+
+                    currentPlayer.Points -= 1000; // [Test]: プレイヤーの点数を減らす (仮)
 
                     if (TurnManager.LastDiscardedTile != null && CurrentPhase != GamePhase.RoundOver)
                     {
