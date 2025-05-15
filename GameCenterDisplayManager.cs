@@ -119,8 +119,6 @@ namespace MahjongApp
                 swi.BringToFront(); // centerPanel内で最前面に配置
             }
 
-
-
             // --- centerPanel 内の要素 (場風、局、残り牌数) ---
             lblCurrentWindAndRound = new WindAndRoundIndicator();
             lblCurrentWindAndRound.Location = new Point(

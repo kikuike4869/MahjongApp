@@ -1,6 +1,6 @@
 namespace MahjongApp
 {
-    class CallManager
+    public class CallManager
     {
         private List<Player> players;
         private int dealerSeat;

@@ -12,6 +12,7 @@ namespace MahjongApp
         public int DiscardTileHeight { get; set; }
         public int TileWidth { get; set; }
         public int TileHeight { get; set; }
+        public int AiThinkTimeMs { get; set; } = 0;
 
         public static Config Instance
         {

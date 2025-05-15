@@ -12,7 +12,19 @@ namespace MahjongApp
         DiscardPhase,
         CallCheckPhase,
         TurnEndPhase,
-        RoundOver, // Includes win or draw calculation
-        GameOver
+        RoundOver,
+        GameOver,
+        WinOrDrawProcessing
+    }
+
+
+    public enum TurnActionResult
+    {
+        Continue,        // 通常通り次のプレイヤーのターンへ
+        Win,             // 和了が発生した
+        ExhaustiveDraw,  // 荒牌平局（壁牌ゼロ）
+        AbortiveDraw,    // 特殊流局（九種九牌など、実装する場合）
+        MeldAndContinue, // 鳴きが発生し、鳴いたプレイヤーが続けて打牌する
+        Error
     }
 }

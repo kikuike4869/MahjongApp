@@ -9,283 +9,413 @@ namespace MahjongApp
 {
     public class MahjongGameManager
     {
-        List<Player> Players; // インデックス 0:自家, 1:下家, 2:対面, 3:上家
-        Wall Wall;
-        TurnManager TurnManager;
-        CallManager CallManager;
-        ScoreManager ScoreManager;
-        public GamePhase CurrentPhase = GamePhase.InitRound;
+        private readonly List<Player> _players;
+        private readonly Wall _wall;
+        private readonly TurnManager _turnManager;
+        private readonly CallManager _callManager;
+        private readonly ScoreManager _scoreManager; // ScoreManagerのインスタンスを保持
 
-        int InitialDealerSeatIndex; // ゲーム開始時の親の SeatIndex (UI基準: 0-3)
-        List<Wind> SeatWinds;       // 各プレイヤーの現在の自風 (Playersリストのインデックスに対応)
-        Wind CurrentWind;           // 場風
-        int CurrentRound;           // 現在の局数 (例: 1局目、2局目)
+        public GamePhase CurrentPhase { get; private set; } = GamePhase.InitRound;
 
-        Action? RefreshHandDisplayCallback;
-        Action? RefreshDiscardWallDisplayCallback;
-        Action? RefreshGameCenterDisplays;
-        Action<bool>? EnableHandInteractionCallback;
+        private int _initialDealerSeatIndex; // ゲーム開始時の親の SeatIndex (UI基準: 0-3)
+        private List<Wind> _seatWinds;       // 各プレイヤーの現在の自風 (Playersリストのインデックスに対応)
+        private Wind _currentWind;           // 場風
+        private int _currentRound;           // 現在の局数 (例: 1局目、2局目)
+        private int _honba;                  // 本場
+        private int _riichiSticks;           // 供託リーチ棒
+        private bool _isGameRunning = false;
+
+        // UI更新用コールバック
+        private Action? _refreshHandDisplayCallback;
+        private Action? _refreshDiscardWallDisplayCallback;
+        private Action? _refreshGameCenterDisplaysCallback;
+        private Action<bool>? _enableHandInteractionCallback; // 手牌操作の有効/無効
+
+        // 人間プレイヤーの打牌を待つためのTaskCompletionSource
+        private TaskCompletionSource<Tile?>? _humanDiscardTcs;
 
         public MahjongGameManager()
         {
-            Wall = new Wall();
-            Players = new List<Player>(Config.Instance.NumberOfPlayers); // Initialize with capacity
-            SeatWinds = new List<Wind>(Config.Instance.NumberOfPlayers);
-            InitializeGame(); // Players と SeatWinds を設定
+            _wall = new Wall();
+            _players = new List<Player>(Config.Instance.NumberOfPlayers);
+            _seatWinds = new List<Wind>(Config.Instance.NumberOfPlayers);
 
-            // DealerIndex (TurnManagerに渡す親) は InitialDealerSeatIndex を使う
-            CallManager = new CallManager(Players, InitialDealerSeatIndex);
-            ScoreManager = new ScoreManager(); // Players を渡す必要があれば修正
-            TurnManager = new TurnManager(Players, Wall, CallManager, ScoreManager, InitialDealerSeatIndex);
-            TurnManager.SetUpdateUICallBack(() => RefreshHandDisplayCallback?.Invoke());
+            // GameManagerがScoreManagerのインスタンスを生成・保持
+            _scoreManager = new ScoreManager(_players); // ScoreManagerにプレイヤーリストを渡す
+
+            // CallManagerとTurnManagerを初期化（dealerSeatはInitializeGameで設定後に渡す）
+            _callManager = new CallManager(_players, 0); // 仮のdealerSeatで初期化
+            _turnManager = new TurnManager(_players, _wall, _callManager, 0); // 仮のdealerSeatで初期化
         }
 
-        void InitializeGame()
+        /// <summary>
+        /// UI更新や人間の入力処理のためのコールバックを設定します。
+        /// MainFormから呼び出されることを想定しています。
+        /// </summary>
+        public void InitializeUICallbacks(
+            Action refreshHandDisplay,
+            Action refreshDiscardWallDisplay,
+            Action refreshGameCenterDisplays,
+            Action<bool> enableHandInteraction)
         {
-            int numPlayers = Config.Instance.NumberOfPlayers;
-            Players.Clear();
-            SeatWinds.Clear(); // SeatWindsもクリア
+            _refreshHandDisplayCallback = refreshHandDisplay;
+            _refreshDiscardWallDisplayCallback = refreshDiscardWallDisplay;
+            _refreshGameCenterDisplaysCallback = refreshGameCenterDisplays;
+            _enableHandInteractionCallback = enableHandInteraction;
 
-            // 仮に人間プレイヤー(自家)を常に SeatIndex 0 とし、東家スタートとする
-            // TODO: 親決めロジックをここに入れる (例: サイコロを振るなど)
-            // 現状は、人間プレイヤーが常に最初の親(東家)と仮定
-            InitialDealerSeatIndex = SharedRandom.Instance.Next(numPlayers);
-            CurrentWind = Wind.East;    // 初期場風は東
-            CurrentRound = 1;           // 初期局数は1
+            // TurnManagerにもコールバックを設定
+            _turnManager.SetCallbacks(
+                RequestHumanDiscardAsync, // 人間の打牌を待つメソッドを渡す
+                RefreshAllDisplays // UI全体更新用メソッドを渡す
+            );
+        }
 
-            // プレイヤーインスタンスの生成 (UI視点: 0=自家, 1=下家, 2=対面, 3=上家)
-            for (int i = 0; i < numPlayers; i++)
+        /// <summary>
+        /// 新しいゲームを開始します。
+        /// </summary>
+        public async Task StartNewGameAsync()
+        {
+            if (_isGameRunning)
+            {
+                Debug.WriteLine("[GameManager] Game is already running.");
+                return;
+            }
+            _isGameRunning = true;
+            CurrentPhase = GamePhase.InitRound; // ゲーム開始時は局の初期化から
+
+            Debug.WriteLine("[GameManager] Starting new game...");
+            InitializeGameProperties(); // 親決め、場風、局数などの初期化
+            InitializePlayers();        // プレイヤーオブジェクトの生成と初期設定
+
+            // TurnManagerとCallManagerに正しい最初の親情報を設定
+            _turnManager.StartNewRound(_initialDealerSeatIndex); // TurnManagerにも最初の親を通知
+            // _callManager.UpdateDealerSeat(_initialDealerSeatIndex); // CallManagerにも更新
+
+            await RunGameLoopAsync();
+
+            _isGameRunning = false;
+            Debug.WriteLine("[GameManager] Game has ended.");
+            // TODO: ゲーム終了時の最終結果表示などの処理
+        }
+
+        /// <summary>
+        /// ゲームの基本的なプロパティ（親、場風、局、本場、リーチ棒）を初期化します。
+        /// </summary>
+        private void InitializeGameProperties()
+        {
+            _initialDealerSeatIndex = SharedRandom.Instance.Next(Config.Instance.NumberOfPlayers);
+            _currentWind = Wind.East;
+            _currentRound = 1;
+            _honba = 0;
+            _riichiSticks = 0;
+
+            Debug.WriteLine($"[GameManager] Initialized game properties. Dealer: {_initialDealerSeatIndex}, Wind: {_currentWind}, Round: {_currentRound}");
+        }
+
+        /// <summary>
+        /// プレイヤーオブジェクトを生成し、初期設定（席、自風、親フラグ）を行います。
+        /// </summary>
+        private void InitializePlayers()
+        {
+            _players.Clear();
+            _seatWinds.Clear(); // 先にクリア
+
+            for (int i = 0; i < Config.Instance.NumberOfPlayers; i++)
             {
                 Player newPlayer;
-                if (i == 0) // 自家 (人間プレイヤー)
+                if (i == 0) // 最初のプレイヤーを人間とする
                 {
                     newPlayer = new HumanPlayer { SeatIndex = i, Name = $"Player {i} (Human)" };
                 }
-                else // 下家、対面、上家 (AIプレイヤー)
+                else
                 {
                     newPlayer = new AIPlayer { SeatIndex = i, Name = $"Player {i} (AI)" };
                 }
-                Players.Add(newPlayer);
+                newPlayer.Points = Config.Instance.NumberOfPlayers == 4 ? 25000 : 35000; // 初期点数
+                _players.Add(newPlayer);
             }
 
-            // 各プレイヤーの初期自風と親フラグを設定
-            // 起家(最初の親)を基準に東南西北を割り振る
-            Wind dealerActualWind = Wind.East; // 起家は必ず東
-            for (int i = 0; i < numPlayers; i++)
+            UpdatePlayerStatesForNewRound(); // 自風と親フラグを更新
+
+            Debug.WriteLine($"[GameManager] Initialized {_players.Count} players.");
+        }
+
+        /// <summary>
+        /// 新しい局の開始時にプレイヤーの状態（自風、親フラグ、手牌など）を更新します。
+        /// </summary>
+        private void UpdatePlayerStatesForNewRound()
+        {
+            // 親の自風は常に東
+            Wind dealerActualWind = Wind.East;
+            _seatWinds = new List<Wind>(new Wind[Config.Instance.NumberOfPlayers]); // 新しいリストで初期化
+
+            for (int i = 0; i < _players.Count; i++)
             {
-                // i は UI上の席順 (0=自家, 1=下家, 2=対面, 3=上家)
-                // InitialDealerSeatIndex は UI上の席順での親の位置
+                _players[i].IsDealer = (i == _initialDealerSeatIndex);
+
                 // プレイヤーiの自風を計算
-                // (i - InitialDealerSeatIndex + numPlayers) % numPlayers で親から見た相対位置が出る
-                // 0: 親自身, 1: 親の下家, 2: 親の対面, 3: 親の上家
-                int relativePositionToDealer = (i - InitialDealerSeatIndex + numPlayers) % numPlayers;
-                Wind playerSeatWind = (Wind)(((int)dealerActualWind + relativePositionToDealer) % numPlayers);
-                SeatWinds.Add(playerSeatWind); // SeatWinds は Players のインデックスに対応
+                int relativePositionToDealer = (i - _initialDealerSeatIndex + _players.Count) % _players.Count;
+                _seatWinds[i] = (Wind)(((int)dealerActualWind + relativePositionToDealer) % _players.Count);
 
-                Players[i].IsDealer = (i == InitialDealerSeatIndex); // 親フラグ設定
-            }
-
-            Debug.WriteLine($"[Game] Initialized {Players.Count} players.");
-            Debug.WriteLine($"[Game] Initial Dealer (UI SeatIndex): {InitialDealerSeatIndex}, Their Wind: {SeatWinds[InitialDealerSeatIndex]}");
-            for (int i = 0; i < numPlayers; i++)
-            {
-                Debug.WriteLine($"[Game] Player {Players[i].SeatIndex} (UI) is {SeatWinds[i]}");
+                _players[i].Hand.Clear();
+                _players[i].Discards.Clear();
+                _players[i].Melds.Clear();
+                _players[i].IsRiichi = false;
+                _players[i].IsTsumo = false;
+                // Debug.WriteLine($"[GameManager] Player {_players[i].SeatIndex} IsDealer: {_players[i].IsDealer}, SeatWind: {_seatWinds[i]}");
             }
         }
 
-        public async Task StartGame()
+
+        /// <summary>
+        /// 配牌処理を行います。
+        /// </summary>
+        private void DealInitialTiles()
         {
-            Debug.WriteLine("[Game] Starting game...");
-            // CurrentRound は InitializeGame で設定済み
+            _wall.InitializeWall(); // 壁牌を初期化・シャッフル
 
-            CurrentPhase = GamePhase.InitRound;
-            TurnManager.StartNewRound(); // TurnManagerは渡されたDealerSeatIndexで開始
-            EnableHandInteractionCallback?.Invoke(false);
-            RefreshHandDisplayCallback?.Invoke();
-            RefreshGameCenterDisplays?.Invoke(); // SeatWinds と DealerSeat をUIに反映
-
-            while (Wall.Count > 0 && CurrentPhase != GamePhase.GameOver)
+            int initialHandSize = Config.Instance.NumberOfFirstHands;
+            foreach (Player player in _players)
             {
-                try
+                for (int i = 0; i < initialHandSize; i++)
                 {
-                    int currentTurnPlayerSeatIndex = TurnManager.GetCurrentTurnSeat(); // UI基準のSeatIndex
-                    Debug.WriteLine($"[Game] ----- Turn Start: Player {currentTurnPlayerSeatIndex} ({SeatWinds[currentTurnPlayerSeatIndex]}), Wall: {Wall.Count} -----");
-                    CurrentPhase = GamePhase.DrawPhase;
-                    EnableHandInteractionCallback?.Invoke(false);
-                    TurnManager.StartTurn();
-                    RefreshHandDisplayCallback?.Invoke();
-                    RefreshGameCenterDisplays?.Invoke();
-
-                    // ... (以降のゲームループはCurrentTurnSeatがUI基準のインデックスであることを前提に動作するはず) ...
-
-                    CurrentPhase = GamePhase.DiscardPhase;
-                    Debug.WriteLine($"[Game] Entering Discard Phase for Player {currentTurnPlayerSeatIndex}");
-
-                    if (TurnManager.IsHumanTurn()) // IsHumanTurnは現在のPlayers[CurrentTurnSeat]がHumanかで判定
+                    Tile? tile = _wall.Draw();
+                    if (tile != null)
                     {
-                        EnableHandInteractionCallback?.Invoke(true);
-                        await WaitForHumanDiscardAsync();
-                        Debug.WriteLine($"[Game] Human discard completed.");
+                        player.Draw(tile); // Drawメソッド内でIsTsumoはfalseのまま
                     }
-                    else // AI Turn
+                    else
                     {
-                        EnableHandInteractionCallback?.Invoke(false);
-                        await Task.Delay(2000); // AIの思考時間を模擬 (実際のAIロジックはここに入る)
-                        TurnManager.DiscardByAI();
-                        RefreshDiscardWallDisplayCallback?.Invoke();
-                        Debug.WriteLine($"[Game] AI discard completed.");
-                    }
-                    Player currentPlayer = Players[currentTurnPlayerSeatIndex];
-
-                    currentPlayer.Points -= 1000; // [Test]: プレイヤーの点数を減らす (仮)
-
-                    if (TurnManager.LastDiscardedTile != null && CurrentPhase != GamePhase.RoundOver)
-                    {
-                        CurrentPhase = GamePhase.CallCheckPhase;
-                        EnableHandInteractionCallback?.Invoke(false);
-                        Debug.WriteLine($"[Game] Entering Call Check Phase for tile: {TurnManager.LastDiscardedTile.Name()}");
-                        // CallManagerの処理もUI基準のSeatIndexで行われる想定
-                    }
-
-                    if (CurrentPhase != GamePhase.RoundOver && CurrentPhase != GamePhase.GameOver)
-                    {
-                        CurrentPhase = GamePhase.TurnEndPhase;
-                        EnableHandInteractionCallback?.Invoke(false);
-                        TurnManager.NextTurn(); // TurnManager内部でCurrentTurnSeatが(CurrentTurnSeat + 1) % numPlayersされる
-                        Debug.WriteLine($"[Game] Advancing to next turn: Player {TurnManager.GetCurrentTurnSeat()}");
+                        Debug.WriteLine($"[GameManager ERROR] Wall empty during initial draw for player {player.SeatIndex}!");
+                        // ここでエラー処理またはゲーム終了を検討
+                        CurrentPhase = GamePhase.GameOver;
+                        return;
                     }
                 }
-                catch (Exception ex)
+                player.SortHand();
+            }
+            Debug.WriteLine("[GameManager] Initial hands dealt.");
+            RefreshAllDisplays();
+        }
+
+
+        /// <summary>
+        /// ゲームのメインループを実行します。局の進行を管理します。
+        /// </summary>
+        private async Task RunGameLoopAsync()
+        {
+            while (CurrentPhase != GamePhase.GameOver)
+            {
+                CurrentPhase = GamePhase.InitRound;
+                PrepareNewRound(); // 配牌など局の準備
+
+                // 1局の進行ループ
+                while (CurrentPhase != GamePhase.RoundOver && CurrentPhase != GamePhase.GameOver)
                 {
-                    Debug.WriteLine($"[FATAL ERROR] Exception in StartGame loop: {ex.Message}\n{ex.StackTrace}");
-                    CurrentPhase = GamePhase.GameOver;
-                    EnableHandInteractionCallback?.Invoke(false);
-                    break;
+                    if (_wall.Count == 0 && CurrentPhase != GamePhase.WinOrDrawProcessing) // ツモる牌がない場合 (ただし和了処理中などは除く)
+                    {
+                        Debug.WriteLine("[GameManager] Wall is empty. Proceeding to round end (exhaustive draw).");
+                        CurrentPhase = GamePhase.RoundOver; // 荒牌流局として局終了フェーズへ
+                        // ProcessRoundEnd内で流局処理を行う
+                        break;
+                    }
+
+                    TurnResult turnResult = await _turnManager.ProcessCurrentTurnAsync();
+                    CurrentPhase = GamePhase.WinOrDrawProcessing; // ターン結果の処理中フェーズ
+
+                    switch (turnResult.ResultType)
+                    {
+                        case TurnActionResult.Continue:
+                            CurrentPhase = GamePhase.TurnEndPhase; // 次のターンの準備へ
+                            break;
+                        case TurnActionResult.Win:
+                            Debug.WriteLine($"[GameManager] Player {turnResult.WinningPlayer?.Name} won with tile {turnResult.WinningTile?.Name()}.");
+                            // TODO: ScoreManagerを使って点数計算し、プレイヤーの点数を更新
+                            // _scoreManager.ProcessWin(turnResult.WinningPlayer, turnResult.WinningTile, turnResult.IsSelfWin, _honba, _riichiSticks, _currentWind, _seatWinds[turnResult.WinningPlayer.SeatIndex]);
+                            _riichiSticks = 0; // 和了したので供託リーチ棒は回収
+                            CurrentPhase = GamePhase.RoundOver;
+                            break;
+                        case TurnActionResult.ExhaustiveDraw:
+                            Debug.WriteLine("[GameManager] Exhaustive draw (wall empty).");
+                            CurrentPhase = GamePhase.RoundOver;
+                            break;
+                        case TurnActionResult.MeldAndContinue:
+                            Debug.WriteLine($"[GameManager] Player {turnResult.MeldPlayer?.Name} melded. Turn continues for this player.");
+                            // TurnManagerが内部でCurrentTurnSeatを更新しているはず
+                            // Meld後の打牌処理をTurnManagerに再度依頼
+                            // ここでは、TurnManager.ProcessTurnAfterMeldAsyncを呼び出すか、
+                            // あるいはTurnManagerが次の打牌までをMeldAndContinueの結果として処理し終えている前提。
+                            // 今回のTurnManagerの実装では、Meld後の打牌もProcessCurrentTurnAsyncやProcessTurnAfterMeldAsyncで処理される想定。
+                            // そのため、GameManagerは次のTurnManager.ProcessCurrentTurnAsync()の呼び出しで対応。
+                            CurrentPhase = GamePhase.TurnEndPhase; // 実際には同じプレイヤーの打牌フェーズへ
+                            break;
+                        case TurnActionResult.Error:
+                            Debug.WriteLine("[GameManager ERROR] Error occurred in turn processing.");
+                            CurrentPhase = GamePhase.GameOver; // エラー発生時はゲーム終了
+                            break;
+                        default:
+                            CurrentPhase = GamePhase.TurnEndPhase;
+                            break;
+                    }
+                    RefreshAllDisplays(); // 各アクション後にUIを更新
+                }
+
+                // 1局終了時の処理
+                if (CurrentPhase == GamePhase.RoundOver)
+                {
+                    ProcessRoundEnd(); // 親流れ、連荘、本場、供託の更新など
+                    if (IsGameOver())
+                    {
+                        CurrentPhase = GamePhase.GameOver;
+                    }
+                }
+                RefreshAllDisplays(); // 局終了後にもUI更新
+            }
+        }
+
+        /// <summary>
+        /// 新しい局の準備を行います（配牌、UIリフレッシュなど）。
+        /// </summary>
+        private void PrepareNewRound()
+        {
+            Debug.WriteLine($"[GameManager] Preparing new round: {_currentWind} {_currentRound}局 {_honba}本場, Riichi sticks: {_riichiSticks}, Dealer: {_initialDealerSeatIndex}");
+            UpdatePlayerStatesForNewRound(); // プレイヤーの自風、親フラグ、手牌などをリセット
+            DealInitialTiles();             // 配牌
+            _turnManager.StartNewRound(_initialDealerSeatIndex); // TurnManagerに新しい局の開始と親を通知
+            // _callManager.UpdateDealerSeat(_initialDealerSeatIndex);
+
+            _enableHandInteractionCallback?.Invoke(false); // 最初は手牌操作不可
+            RefreshAllDisplays();
+            CurrentPhase = GamePhase.TurnEndPhase; // 最初のターンの準備完了状態
+        }
+
+
+        /// <summary>
+        /// 局終了時の処理（親流れ、連荘、本場・リーチ棒の更新など）を行います。
+        /// </summary>
+        private void ProcessRoundEnd()
+        {
+            Debug.WriteLine($"[GameManager] Processing Round End. Current Dealer: {_initialDealerSeatIndex} ({_players[_initialDealerSeatIndex].Name})");
+
+            // TODO: 和了処理や流局処理の結果に基づいて、親が連荘するか流れるかを決定する。
+            //       ScoreManagerから情報を取得し、判定する。
+            //       例: bool dealerWonOrTenpai = _scoreManager.DidDealerWinOrTenpaiOnDraw(_initialDealerSeatIndex);
+            bool dealerWonOrTenpai = false; // 仮: 親は和了も聴牌もしていないとする
+            // if (和了者 == 親) dealerWonOrTenpai = true;
+            // if (流局 && 親が聴牌) dealerWonOrTenpai = true;
+
+            if (dealerWonOrTenpai)
+            {
+                Debug.WriteLine($"[GameManager] Dealer ({_players[_initialDealerSeatIndex].Name}) won or was tenpai on draw. Renchan (連荘).");
+                _honba++; // 連荘なので本場を1増やす
+                // 親は変わらない (_initialDealerSeatIndex も _currentRound も変わらない)
+            }
+            else
+            {
+                Debug.WriteLine($"[GameManager] Dealer ({_players[_initialDealerSeatIndex].Name}) lost or was noten on draw. Dealer moves.");
+                _honba = 0; // 親流れなので本場は0に戻る
+                _initialDealerSeatIndex = (_initialDealerSeatIndex + 1) % _players.Count; // 次の人が親
+                _currentRound++; // 局が進む
+
+                // 場風が変わるかチェック (東4局が終わったら南1局へ、など)
+                if (_currentRound > _players.Count) // 東/南場の1巡が終わった場合
+                {
+                    if (_currentWind == Wind.East) // 東場が終わった
+                    {
+                        // 南入するかどうか (東風戦ならここでゲーム終了の可能性)
+                        // 今回は東風戦想定として、ここではゲーム終了条件には含めず、IsGameOverで判定
+                        // _currentWind = Wind.South;
+                        // _currentRound = 1;
+                        Debug.WriteLine("[GameManager] East round cycle completed.");
+                    }
+                    // else if (_currentWind == Wind.South) { /* 西入またはゲーム終了 */ }
                 }
             }
+            // リーチ棒は、和了があればその局で処理済み、流局なら持ち越し
+            // _riichiSticks は ScoreManager が管理するか、ここで増減させる。流局時は増えることはない。
 
-            EnableHandInteractionCallback?.Invoke(false);
-            if (CurrentPhase != GamePhase.GameOver)
-            {
-                CurrentPhase = GamePhase.RoundOver;
-                TurnManager.EndRound(); // TODO: EndRound内で親流れ、連荘、局と場風の更新
-                                        // UpdateRoundAndDealer(); // 新しいメソッド例
-            }
-            Debug.WriteLine("[Game] Game loop finished.");
+            Debug.WriteLine($"[GameManager] Next round state: Dealer: {_initialDealerSeatIndex}, Wind: {_currentWind}, Round: {_currentRound}, Honba: {_honba}");
         }
 
-        // 仮: UpdateRoundAndDealer メソッド (EndRoundから呼ばれる想定)
-        // ここで親が流れたか、連荘かなどを判断し、
-        // 次の局の DealerIndex (UI基準), CurrentWind, CurrentRound, SeatWinds を更新する
-        /*
-        void UpdateRoundAndDealer()
+
+        /// <summary>
+        /// ゲームの終了条件を判定します。
+        /// </summary>
+        private bool IsGameOver()
         {
-            bool dealerWonOrTenpai = ...; // 親が和了ったかテンパイだったか
-            bool allPlayersTenpaiInDraw = ...; // 流局時に全員テンパイだったか
-
-            if (dealerWonOrTenpai || allPlayersTenpaiInDraw) // 連荘条件
+            // 東風戦の終了条件の例:
+            // 1. 東4局が終了し、親が流れた場合 (次の局が名目上「東5局」になる場合)
+            if (_currentWind == Wind.East && _currentRound > Config.Instance.NumberOfPlayers)
             {
-                // DealerIndex は変わらない
-                // 本場を増やすなど
-            }
-            else // 親流れ
-            {
-                InitialDealerSeatIndex = (InitialDealerSeatIndex + 1) % Config.Instance.NumberOfPlayers; // 次の人が親
-                // PlayersリストのIsDealerフラグを更新
-                for(int i=0; i < Players.Count; i++) Players[i].IsDealer = (i == InitialDealerSeatIndex);
-
-                // 場風が変わるかチェック (東場 -> 南場など)
-                // 例: (CurrentRound / Config.Instance.NumberOfPlayers) の商が変わったら場風も進める
-                // CurrentRound++;
-                // if ((CurrentRound -1) % Config.Instance.NumberOfPlayers == 0 && CurrentRound > 1) // 4局ごとに場風が変わる場合
-                // {
-                //    CurrentWind = (Wind)((int)CurrentWind + 1);
-                //    if ((int)CurrentWind >= Config.Instance.NumberOfPlayers) CurrentWind = Wind.East; // 例: 北場の次はない想定
-                // }
-            }
-            // 新しいDealerIndexとCurrentWindに基づいて、全プレイヤーのSeatWindsを再計算
-            Wind newDealerActualWind = Wind.East; // 親は常に自風が東として扱われる
-            for (int i = 0; i < Players.Count; i++)
-            {
-                int relativePositionToNewDealer = (i - InitialDealerSeatIndex + Players.Count) % Players.Count;
-                SeatWinds[i] = (Wind)(((int)newDealerActualWind + relativePositionToNewDealer) % Players.Count);
+                Debug.WriteLine($"[GameManager] Game Over: East round cycle completed (CurrentRound: {_currentRound}).");
+                return true;
             }
 
-            TurnManager.SetDealerSeat(InitialDealerSeatIndex); // TurnManagerにも新しい親を通知
-            RefreshGameCenterDisplays?.Invoke(); // UI更新
-        }
-        */
-
-
-        private TaskCompletionSource<bool>? _humanDiscardTcs;
-
-        private Task WaitForHumanDiscardAsync()
-        {
-            _humanDiscardTcs = new TaskCompletionSource<bool>();
-            Debug.WriteLine("[Game] Waiting for human discard...");
-            return _humanDiscardTcs.Task;
+            // 2. 誰かの持ち点が0点以下になった場合 (トビ終了)
+            if (_players.Any(p => p.Points <= 0))
+            {
+                Player? bankruptPlayer = _players.FirstOrDefault(p => p.Points <= 0);
+                Debug.WriteLine($"[GameManager] Game Over: Player {bankruptPlayer?.Name} has {bankruptPlayer?.Points} points (Tobi).");
+                return true;
+            }
+            // TODO: その他の終了条件（例：時間制限、西入しない設定で南4局終了など）
+            return false;
         }
 
-        public void NotifyHumanDiscardOfTurnManager()
+        /// <summary>
+        /// 人間プレイヤーに打牌を要求し、その結果を待ちます。
+        /// TurnManagerから呼び出されるコールバックとして設定されます。
+        /// </summary>
+        private async Task<Tile?> RequestHumanDiscardAsync()
         {
-            Debug.WriteLine("[Game] Received notification of human discard.");
-            EnableHandInteractionCallback?.Invoke(false);
-            _humanDiscardTcs?.TrySetResult(true);
+            _enableHandInteractionCallback?.Invoke(true); // 手牌操作を有効にする
+            _humanDiscardTcs = new TaskCompletionSource<Tile?>();
+            Debug.WriteLine("[GameManager] Waiting for human discard via UI...");
+
+            Tile? discardedTile = await _humanDiscardTcs.Task; // MainFormからの通知を待つ
+
+            _enableHandInteractionCallback?.Invoke(false); // 手牌操作を無効にする
+            return discardedTile;
         }
 
-        public bool IsHumanTurnFromTurnManager()
+        /// <summary>
+        /// MainForm（UI）から人間プレイヤーの打牌が完了したことを通知されます。
+        /// </summary>
+        /// <param name="discardedTile">捨てられた牌。UI側でPlayerモデルの手牌からの削除とDiscardsへの追加は完了している想定。</param>
+        public void NotifyHumanDiscard(Tile discardedTile)
         {
-            return TurnManager.IsHumanTurn();
+            Debug.WriteLine($"[GameManager] Human discard notified: {discardedTile.Name()}");
+            // ここでPlayerモデルの更新はUI側で行われている前提。
+            // _players[0].DiscardTile(discardedTile); // もしUI側でモデル更新してなければここで行う
+            _humanDiscardTcs?.TrySetResult(discardedTile);
         }
 
-        public HumanPlayer? GetHumanPlayer()
+
+        // --- UI 更新用メソッド ---
+        private void RefreshAllDisplays()
         {
-            // Players[0] が人間プレイヤーであるという前提
-            return Players[0] as HumanPlayer;
-        }
-        public List<Player>? GetPlayers()
-        {
-            // このPlayersリストはUI視点の並びになっている
-            return Players;
+            _refreshHandDisplayCallback?.Invoke();
+            _refreshDiscardWallDisplayCallback?.Invoke();
+            _refreshGameCenterDisplaysCallback?.Invoke();
         }
 
-        public int GetHonba()
+        // --- 各DisplayManagerへの情報提供用ゲッター ---
+        public HumanPlayer? GetHumanPlayer() => _players.FirstOrDefault(p => p.IsHuman) as HumanPlayer;
+        public List<Player> GetPlayers() => _players;
+        public int GetHonba() => _honba;
+        public int GetRiichiStickCount() => _riichiSticks;
+        public List<Wind> GetSeatWinds() => _seatWinds;
+        public int GetDealerSeat() => _initialDealerSeatIndex; // 現在の親の席
+        public Wind GetCurrentWind() => _currentWind;
+        public int GetCurrentRound() => _currentRound;
+        public int GetRemainingTileCount() => _wall.Count;
+
+        /// <summary>
+        /// テストやUIからのゲーム開始トリガー用。
+        /// </summary>
+        public void TriggerStartGameForTest()
         {
-            return 0;
-        }
-
-        public int GetRiichiStickCount()
-        {
-            return 0;
-        }
-
-        public int GetCurrentTurnSeat() { return TurnManager.GetCurrentTurnSeat(); } // UI基準のSeatIndex
-
-        // SeatWinds はUI基準のプレイヤーの自風リスト (Players[i] の自風が SeatWinds[i])
-        public List<Wind> GetSeatWinds() { return SeatWinds; }
-
-        public int GetDealerSeat() { return TurnManager.GetDealerSeat(); } // UI基準のSeatIndex
-
-        public Wind GetCurrentWind() { return CurrentWind; } // 場風
-        public int GetCurrentRound() { return CurrentRound; } // 局数 (1から始まる)
-
-        public int GetRemainingTileCount() { return Wall.Count; }
-
-        public void SetUpdateUICallBack(Action refreshHandDisplay, Action refreshDiscardWallDisplay, Action refreshGameCenterDisplays)
-        {
-            RefreshHandDisplayCallback = refreshHandDisplay;
-            RefreshDiscardWallDisplayCallback = refreshDiscardWallDisplay;
-            RefreshGameCenterDisplays = refreshGameCenterDisplays;
-        }
-
-        public void SetEnableHandInteractionCallback(Action<bool> enableInteraction)
-        {
-            EnableHandInteractionCallback = enableInteraction;
-        }
-
-        public void Test()
-        {
-            _ = StartGame();
+            _ = StartNewGameAsync();
         }
     }
 }

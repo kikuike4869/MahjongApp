@@ -4,7 +4,7 @@ using System.Linq; // Added for Shuffle temporary list conversion
 
 namespace MahjongApp
 {
-    class Wall
+    public class Wall
     {
         private Queue<Tile> Tiles;
         public Queue<Tile> WanPie { get; private set; }

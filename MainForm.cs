@@ -33,7 +33,7 @@ namespace MahjongApp
         public MainForm()
         {
             InitializeComponent();
-            this.Load += MainForm_Load; // ClientSize確定後にレイアウト設定するため
+            this.Load += MainForm_Load;
 
             this.SetStyle(ControlStyles.OptimizedDoubleBuffer |
                           ControlStyles.UserPaint |
@@ -42,47 +42,51 @@ namespace MahjongApp
 
             // gameManagerの初期化
             gameManager = new MahjongGameManager();
-            gameManager.SetUpdateUICallBack(RefreshHandDisplays, RefreshDiscardWallDisplays, RefreshGameCenterDisplays); // UI更新コールバック
-            gameManager.SetEnableHandInteractionCallback(EnableHandInteraction); // UI操作可否コールバック
+            // ★変更点: InitializeUICallbacks を呼び出す
+            gameManager.InitializeUICallbacks(
+                RefreshHandDisplays,
+                RefreshDiscardWallDisplays,
+                RefreshGameCenterDisplays,
+                EnableHandInteraction
+            );
 
             this.FormClosing += MainForm_FormClosing;
         }
 
         private void MainForm_Load(object sender, EventArgs e)
         {
-            // HandStartY は ClientSize.Height を使って決定
             HandStartY = this.ClientSize.Height - TileHeight * 2;
-            if (HandStartY < TileHeight) HandStartY = TileHeight + 10; // 画面が小さすぎる場合のフォールバック
+            if (HandStartY < TileHeight) HandStartY = TileHeight + 10;
 
-            // DisplayManager の初期化 (親コントロールとして this (Form) を渡す)
             handDisplayManager = new HandDisplayManager(
-                this, // 親コントロール
-                () => gameManager.GetHumanPlayer(),
-                HandleTileDiscard,  // 打牌処理のメソッドを渡す
-                HandleTileSelect,   // 選択処理のメソッドを渡す
+                this,
+                () => gameManager.GetHumanPlayer(), // GetHumanPlayerはMahjongGameManagerに実装想定
+                HandleTileDiscard,
+                HandleTileSelect,
                 TileWidth, TileHeight, HandStartX, HandStartY, SelectedOffsetY, DrawnTileOffsetX
             );
 
-            SetupDiscardWallLayout(gameManager.GetPlayers()?.Count ?? 4); // プレイヤー数に基づいてレイアウト設定
+            SetupDiscardWallLayout(gameManager.GetPlayers()?.Count ?? 4);
 
             discardWallDisplayManager = new DiscardWallDisplayManager(
-                this, // 親コントロール
+                this,
                 () => gameManager.GetPlayers(),
                 DiscardTileWidth, DiscardTileHeight, DiscardColumns,
                 DiscardWallStartPositions, DiscardWallRotations
             );
 
             gameCenterDisplayManager = new GameCenterDisplayManager(
-            this, // 親コントロール (MainForm自体)
-            () => gameManager.GetSeatWinds(),
-            () => gameManager.GetDealerSeat(),
-            () => gameManager.GetCurrentWind(),
-            () => gameManager.GetCurrentRound(),
-            () => gameManager.GetRemainingTileCount(),
-            () => gameManager.GetPlayers()
-        );
+                this,
+                () => gameManager.GetSeatWinds(),
+                () => gameManager.GetDealerSeat(),
+                () => gameManager.GetCurrentWind(),
+                () => gameManager.GetCurrentRound(),
+                () => gameManager.GetRemainingTileCount(),
+                () => gameManager.GetPlayers()
+            );
 
-            gameManager.Test(); // ゲーム開始 (DisplayManager初期化後)
+            // ★変更点: ゲーム開始のトリガー
+            gameManager.TriggerStartGameForTest(); // または StartNewGameAsync() を適切に呼び出す
         }
 
 
@@ -150,20 +154,29 @@ namespace MahjongApp
         private void HandleTileDiscard(Tile tile)
         {
             Debug.WriteLine($"[MainForm] HandleTileDiscard: {tile.Name()}");
-            if (gameManager.CurrentPhase == GamePhase.DiscardPhase && gameManager.IsHumanTurnFromTurnManager())
+            HumanPlayer? player = gameManager.GetHumanPlayer();
+            if (player != null && player.Hand.Contains(tile)) // 手牌にあるか確認
             {
-                HumanPlayer? player = gameManager.GetHumanPlayer();
-                if (player != null)
-                {
-                    player.DiscardTile(tile); // Modelの更新
-                                              // RefreshAllDisplays(); // Model更新後、GameManagerからのコールバックでUIが更新されるはず
-                                              // ただし、即時反映したい場合はここで呼ぶか、
-                                              // GameManagerがDiscardTile後にUI更新をトリガーするようにする。
-                                              // 現状はNotifyHumanDiscardOfTurnManager内でUI更新はされないので、ここで呼ぶ。
-                    RefreshHandDisplays(); // 手牌表示を更新
-                    RefreshDiscardWallDisplays(); // 捨て牌表示を更新
-                    gameManager.NotifyHumanDiscardOfTurnManager(); // GameManagerに打牌完了を通知
-                }
+                // 1. Playerモデルの更新 (手牌から削除し、捨て牌に追加)
+                //    これはUI側の責務か、GameManagerに依頼するか設計による。
+                //    ここではUI側（MainForm）でPlayerモデルを直接更新すると仮定。
+                //    ただし、UIスレッドからのモデル操作は注意が必要。
+                //    より安全なのは、GameManagerに「この牌を捨てたい」と通知し、
+                //    GameManagerがモデルを更新し、UI更新コールバックをトリガーする形。
+                //    今回は、既存の player.DiscardTile が Playerクラスに存在し、
+                //    手牌と捨て牌を更新すると仮定する。
+                player.DiscardTile(tile); // Playerモデルを更新
+
+                // 2. UI表示の更新 (手牌と捨て牌)
+                RefreshHandDisplays();
+                RefreshDiscardWallDisplays();
+
+                // 3. GameManagerに打牌完了を通知
+                gameManager.NotifyHumanDiscard(tile);
+            }
+            else
+            {
+                Debug.WriteLine($"[MainForm WARNING] Attempted to discard tile not in hand or player is null: {tile.Name()}");
             }
         }
 

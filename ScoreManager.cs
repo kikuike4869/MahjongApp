@@ -8,7 +8,7 @@ namespace MahjongApp
 
         public int LastPointsMoved { get; private set; } // 前回の移動点数（UI表示用など）
 
-        // public ScoreManager(List<Player> players);
+        public ScoreManager(List<Player> players) { }
 
         // public void ProcessTsumoWin(Player winner, Tile winningTile, bool isDealer, List<Yaku> yakuList);
         // public void ProcessRonWin(Player winner, Player discarder, Tile winningTile, bool isDealer, List<Yaku> yakuList);
