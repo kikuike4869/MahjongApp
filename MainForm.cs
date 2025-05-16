@@ -33,7 +33,6 @@ namespace MahjongApp
         public MainForm()
         {
             InitializeComponent();
-            this.Load += MainForm_Load;
 
             this.SetStyle(ControlStyles.OptimizedDoubleBuffer |
                           ControlStyles.UserPaint |
@@ -42,6 +41,9 @@ namespace MahjongApp
 
             // gameManagerの初期化
             gameManager = new MahjongGameManager();
+
+            this.Load += MainForm_Load;
+
             // ★変更点: InitializeUICallbacks を呼び出す
             gameManager.InitializeUICallbacks(
                 RefreshHandDisplays,
@@ -89,7 +91,6 @@ namespace MahjongApp
             gameManager.TriggerStartGameForTest(); // または StartNewGameAsync() を適切に呼び出す
         }
 
-
         private void SetupDiscardWallLayout(int numberOfPlayers)
         {
             DiscardWallStartPositions.Clear();
@@ -118,7 +119,6 @@ namespace MahjongApp
                 DiscardWallStartPositions[3] = new Point(centerX - marginFromCenter - DiscardTileHeight, centerY - playerDiscardAreaSize.Width / 2 + OffsetY);
                 DiscardWallRotations[3] = true;
             }
-            // 他のプレイヤー数のレイアウトも必要なら追加
         }
 
         private void RefreshDiscardWallDisplays()
@@ -128,6 +128,7 @@ namespace MahjongApp
                 this.Invoke(new Action(RefreshDiscardWallDisplays));
                 return;
             }
+
             discardWallDisplayManager?.RefreshDisplay();
         }
         private void RefreshHandDisplays()

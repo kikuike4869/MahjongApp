@@ -40,6 +40,9 @@ namespace MahjongApp
             _players = new List<Player>(Config.Instance.NumberOfPlayers);
             _seatWinds = new List<Wind>(Config.Instance.NumberOfPlayers);
 
+            InitializeGameProperties(); // 親決め、場風、局数などの初期化
+            InitializePlayers();        // プレイヤーオブジェクトの生成と初期設定
+
             // GameManagerがScoreManagerのインスタンスを生成・保持
             _scoreManager = new ScoreManager(_players); // ScoreManagerにプレイヤーリストを渡す
 
@@ -84,8 +87,8 @@ namespace MahjongApp
             CurrentPhase = GamePhase.InitRound; // ゲーム開始時は局の初期化から
 
             Debug.WriteLine("[GameManager] Starting new game...");
-            InitializeGameProperties(); // 親決め、場風、局数などの初期化
-            InitializePlayers();        // プレイヤーオブジェクトの生成と初期設定
+            // InitializeGameProperties(); // 親決め、場風、局数などの初期化
+            // InitializePlayers();        // プレイヤーオブジェクトの生成と初期設定
 
             // TurnManagerとCallManagerに正しい最初の親情報を設定
             _turnManager.StartNewRound(_initialDealerSeatIndex); // TurnManagerにも最初の親を通知
