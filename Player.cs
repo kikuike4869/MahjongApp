@@ -57,6 +57,8 @@ namespace MahjongApp
                 // Consider throwing an exception or handling the error state
                 // throw new ArgumentException("Attempted to discard a tile that is not in the hand.");
             }
+
+
         }
 
 
@@ -67,6 +69,22 @@ namespace MahjongApp
             throw new NotImplementedException("ChooseDiscardTile must be implemented by subclasses.");
         }
 
+        public List<Tile> GetAllTilesInHandAndMelds()
+        {
+            var allTiles = new List<Tile>(this.Hand);
+            foreach (var meld in this.Melds)
+            {
+                allTiles.AddRange(meld.Tiles);
+            }
+            return allTiles;
+        }
+
+        public bool IsMenzen()
+        {
+            // 副露（鳴き）がない状態を面前とする
+            // 暗槓は面前扱い
+            return !Melds.Any(m => m.IsOpen);
+        }
         // public void DeclareRiichi();                  // リーチ宣言
         // public void AddMeld(Meld meld);               // ポン・チー・カンなど
         // public bool CheckWin(Tile drawnOrClaimedTile);// 和了可能かチェック
@@ -113,6 +131,7 @@ namespace MahjongApp
         public List<Tile> Tiles { get; set; } = new List<Tile>();
         public int FromPlayerIndex { get; set; } // 鳴いた相手 (0-3 relative to self, or absolute seat index?)
         public Tile? CalledTile { get; set; } // The tile that was called (Chi/Pon/Kan target)
+        public bool IsOpen { get; set; } = false; // Open meld (Pon, Chi, Minkan) or closed (Ankan)
 
         // Example: Pon of Red Dragon from player to the left (index 3 relative)
         // Type = MeldType.Pon

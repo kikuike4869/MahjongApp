@@ -1,14 +1,12 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "C:\\Users\\kikuike\\Dropbox\\VisualStudio2022\\MahjongGame\\MahjongApp\\",
+  "WorkspaceRootPath": "C:\\Users\\kikuchi\\Documents\\GitHub\\MahjongApp\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{822F2DA1-AD88-4E88-A181-B1834FB19B84}|MahjongApp.csproj|c:\\users\\kikuike\\dropbox\\visualstudio2022\\mahjonggame\\mahjongapp\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{822F2DA1-AD88-4E88-A181-B1834FB19B84}|MahjongApp.csproj|solutionrelative:form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\kikuike\\Dropbox\\VisualStudio2022\\MahjongGame\\MahjongApp\\Form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{822F2DA1-AD88-4E88-A181-B1834FB19B84}|MahjongApp.csproj|C:\\Users\\kikuike\\Dropbox\\VisualStudio2022\\MahjongGame\\MahjongApp\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
-      "RelativeMoniker": "D:0:0:{822F2DA1-AD88-4E88-A181-B1834FB19B84}|MahjongApp.csproj|solutionrelative:form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\kikuike\\Dropbox\\VisualStudio2022\\MahjongGame\\MahjongApp\\form1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
     }
   ],
   "DocumentGroupContainers": [
@@ -25,22 +23,20 @@
               "DocumentIndex": 0,
               "Title": "Form1.cs",
               "DocumentMoniker": "C:\\Users\\kikuike\\Dropbox\\VisualStudio2022\\MahjongGame\\MahjongApp\\Form1.cs",
-              "RelativeDocumentMoniker": "Form1.cs",
+              "RelativeDocumentMoniker": "..\\..\\..\\..\\kikuike\\Dropbox\\VisualStudio2022\\MahjongGame\\MahjongApp\\Form1.cs",
               "ToolTip": "C:\\Users\\kikuike\\Dropbox\\VisualStudio2022\\MahjongGame\\MahjongApp\\Form1.cs",
-              "RelativeToolTip": "Form1.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "RelativeToolTip": "..\\..\\..\\..\\kikuike\\Dropbox\\VisualStudio2022\\MahjongGame\\MahjongApp\\Form1.cs",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-08T12:04:04.945Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-05-08T12:04:04.945Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
               "Title": "Form1.cs [\u30C7\u30B6\u30A4\u30F3]",
               "DocumentMoniker": "C:\\Users\\kikuike\\Dropbox\\VisualStudio2022\\MahjongGame\\MahjongApp\\Form1.cs",
-              "RelativeDocumentMoniker": "Form1.cs",
+              "RelativeDocumentMoniker": "..\\..\\..\\..\\kikuike\\Dropbox\\VisualStudio2022\\MahjongGame\\MahjongApp\\Form1.cs",
               "ToolTip": "C:\\Users\\kikuike\\source\\repos\\MahjongApp\\Form1.cs [\u30C7\u30B6\u30A4\u30F3]",
-              "RelativeToolTip": "..\\..\\..\\..\\source\\repos\\MahjongApp\\Form1.cs [\u30C7\u30B6\u30A4\u30F3]",
+              "RelativeToolTip": "..\\..\\..\\..\\kikuike\\source\\repos\\MahjongApp\\Form1.cs [\u30C7\u30B6\u30A4\u30F3]",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-05-08T12:03:46.516Z"
             }

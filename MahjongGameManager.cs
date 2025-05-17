@@ -411,6 +411,7 @@ namespace MahjongApp
         public int GetDealerSeat() => _initialDealerSeatIndex; // 現在の親の席
         public Wind GetCurrentWind() => _currentWind;
         public int GetCurrentRound() => _currentRound;
+        public Wall GetWall() => _wall;
         public int GetRemainingTileCount() => _wall.Count;
 
         /// <summary>

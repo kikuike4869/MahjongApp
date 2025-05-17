@@ -48,8 +48,12 @@ namespace MahjongApp
             // TileImageCache クラス経由で画像を取得
             return TileImageCache.GetImage(this);
         }
-    }
 
-    // Suit enum definition (assuming it exists elsewhere or define here)
-    // public enum Suit { Manzu, Pinzu, Souzu, Honor }
+        public bool EqualsForDora(Tile other)
+        {
+            if (other == null) return false;
+            // 赤ドラは通常の数牌としてもドラとしてカウントされるため、SuitとNumberのみで比較
+            return this.Suit == other.Suit && this.Number == other.Number;
+        }
+    }
 }

@@ -108,6 +108,14 @@ namespace MahjongApp
                     if (i < discards.Count)
                     {
                         Tile tile = discards[i];
+                        if (tile == null) // ★ null チェックを追加
+                        {
+                            Debug.WriteLine($"[DiscardWallManager WARNING] Player {player.SeatIndex} has a null tile in discards at index {i}. Skipping.");
+                            pb.Visible = false; // PictureBoxを非表示にするなど、適切な処理
+                            pb.Tag = null;
+                            pb.Image = null;
+                            continue;
+                        }
                         Image tileImage = TileImageCache.GetImage(tile);
                         Image? originalImageForPb = pb.Image; // Dispose漏れ対策用
                         Image? imageToDisplay = tileImage;
@@ -134,7 +142,7 @@ namespace MahjongApp
                         }
 
                         // 以前の画像がクローンならDispose (現在のTileImageCacheの管理外のため)
-                        if (originalImageForPb != null && originalImageForPb != TileImageCache.GetImage((Tile)pb.Tag!) && originalImageForPb != imageToDisplay)
+                        if (originalImageForPb != null && pb.Tag is Tile currentTileTag && originalImageForPb != TileImageCache.GetImage(currentTileTag) && originalImageForPb != imageToDisplay)
                         {
                             originalImageForPb.Dispose();
                         }

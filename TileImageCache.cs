@@ -22,6 +22,14 @@ namespace MahjongApp
         /// <exception cref="FileNotFoundException">画像ファイルが見つからない場合にスローされます。</exception>
         public static Image GetImage(Tile tile)
         {
+            if (tile == null)
+            {
+                System.Diagnostics.Debug.WriteLine("[ERROR] TileImageCache.GetImage called with null tile.");
+                // nullの場合の代替画像や例外処理を検討
+                // 例えば、デフォルトの画像や透明な画像を返すなど
+                // return GetDefaultTileImage(); // 仮のメソッド
+                throw new ArgumentNullException(nameof(tile), "Tile object cannot be null.");
+            }
             string tileKey = tile.ToString(); // キャッシュキー（例: "Manzu_1", "Pinzu_5_red"）
 
             if (_imageCache.TryGetValue(tileKey, out Image? cachedImage))

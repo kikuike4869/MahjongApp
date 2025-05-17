@@ -138,7 +138,7 @@ namespace MahjongApp
             }
             // Calculate the first Dora based on the first indicator
             if (DoraIndicator.Count > 0)
-                Dora.Add(CalculateNextTile(DoraIndicator[0]));
+                Dora.Add(CalculateNextTileForDora(DoraIndicator[0]));
         }
 
         // 裏ドラ設定 (表示牌取得 + 裏ドラ計算)
@@ -154,7 +154,7 @@ namespace MahjongApp
             }
             // Calculate the first Hidden Dora
             if (HiddenDoraIndicator.Count > 0)
-                HiddenDora.Add(CalculateNextTile(HiddenDoraIndicator[0]));
+                HiddenDora.Add(CalculateNextTileForDora(HiddenDoraIndicator[0]));
         }
 
         // 王牌設定 (嶺上牌4枚を取得)
@@ -174,32 +174,57 @@ namespace MahjongApp
         /// <summary>
         /// ドラ表示牌から実際のドラ牌を計算します。
         /// </summary>
-        private Tile CalculateNextTile(Tile indicatorTile)
+        // private Tile CalculateNextTile(Tile indicatorTile)
+        // {
+        //     int nextTileNumber;
+        //     Suit nextTileSuit = indicatorTile.Suit;
+
+        //     if (indicatorTile.Suit == Suit.Honor) // 字牌
+        //     {
+        //         // 風牌 (East=1 ... North=4) -> rolls over 1 -> 2 -> 3 -> 4 -> 1
+        //         if (indicatorTile.Number >= 1 && indicatorTile.Number <= 4)
+        //         {
+        //             nextTileNumber = (indicatorTile.Number == 4) ? 1 : indicatorTile.Number + 1;
+        //         }
+        //         // 三元牌 (White=5, Green=6, Red=7) -> rolls over 5 -> 6 -> 7 -> 5
+        //         else // number is 5, 6, or 7
+        //         {
+        //             nextTileNumber = (indicatorTile.Number == 7) ? 5 : indicatorTile.Number + 1;
+        //         }
+        //     }
+        //     else // 数牌 (Manzu, Pinzu, Souzu)
+        //     {
+        //         // 1-8 -> number + 1
+        //         // 9 -> 1
+        //         nextTileNumber = (indicatorTile.Number == 9) ? 1 : indicatorTile.Number + 1;
+        //     }
+
+        //     return new Tile(nextTileSuit, nextTileNumber, 0);
+        // }
+
+        public Tile CalculateNextTileForDora(Tile indicatorTile)
         {
+            // 既存のCalculateNextTileメソッドのロジックをここに記述するか、呼び出す
             int nextTileNumber;
             Suit nextTileSuit = indicatorTile.Suit;
 
             if (indicatorTile.Suit == Suit.Honor) // 字牌
             {
-                // 風牌 (East=1 ... North=4) -> rolls over 1 -> 2 -> 3 -> 4 -> 1
-                if (indicatorTile.Number >= 1 && indicatorTile.Number <= 4)
+                if (indicatorTile.Number >= 1 && indicatorTile.Number <= 4) // 風牌
                 {
                     nextTileNumber = (indicatorTile.Number == 4) ? 1 : indicatorTile.Number + 1;
                 }
-                // 三元牌 (White=5, Green=6, Red=7) -> rolls over 5 -> 6 -> 7 -> 5
-                else // number is 5, 6, or 7
+                else // 三元牌 (5:白, 6:發, 7:中)
                 {
                     nextTileNumber = (indicatorTile.Number == 7) ? 5 : indicatorTile.Number + 1;
                 }
             }
-            else // 数牌 (Manzu, Pinzu, Souzu)
+            else // 数牌
             {
-                // 1-8 -> number + 1
-                // 9 -> 1
                 nextTileNumber = (indicatorTile.Number == 9) ? 1 : indicatorTile.Number + 1;
             }
-
-            return new Tile(nextTileSuit, nextTileNumber, 0);
+            // ドラ牌は赤指定なしの通常牌として生成する（手牌の赤ドラがこれに合致すればドラとしてカウント）
+            return new Tile(nextTileSuit, nextTileNumber, 0); // Indexは0で仮置き (Dora判定では使わない想定)
         }
 
         /// <summary>
@@ -211,13 +236,13 @@ namespace MahjongApp
             if (numberOfOpenedDora < 5) // 最大5つまで
             {
                 // 次のドラ表示牌からドラを計算して追加
-                Dora.Add(CalculateNextTile(DoraIndicator[numberOfOpenedDora]));
+                Dora.Add(CalculateNextTileForDora(DoraIndicator[numberOfOpenedDora]));
 
                 // 対応する裏ドラも計算して追加
                 // Check HiddenDoraIndicator bounds as well
                 if (numberOfOpenedDora < HiddenDoraIndicator.Count)
                 {
-                    HiddenDora.Add(CalculateNextTile(HiddenDoraIndicator[numberOfOpenedDora]));
+                    HiddenDora.Add(CalculateNextTileForDora(HiddenDoraIndicator[numberOfOpenedDora]));
                 }
             }
         }
