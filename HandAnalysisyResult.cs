@@ -26,71 +26,19 @@ namespace MahjongApp
 
         private Player _player;
 
+        // 全パターン解析用の新しいメソッド (またはコンストラクタ)
+        // 例: 手牌のみを渡して、全ての待ちやシャンテン数を計算する       
         public HandAnalysisResult(Player player, Tile winningTile, bool isTsumo)
         {
-            _player = player;
             WinningTile = winningTile;
             IsTsumo = isTsumo;
             IsMenzen = player.IsMenzen();
+            AnalyzedHand = SortTiles(new List<Tile>(player.Hand));
 
-            var currentHand = new List<Tile>(player.Hand);
-
-            // 1. 解析対象の手牌リストを作成 (プレイヤーの手牌のコピー + 和了牌)
-            //    プレイヤーの手牌は変更しないようにコピーして扱う
             if (!isTsumo)
             {
-                currentHand.Add(winningTile);
+                AnalyzedHand.Add(winningTile);
             }
-            // ツモ和了の場合、player.Hand には既に和了牌が含まれている想定
-
-            AnalyzedHand = SortTiles(currentHand);
-
-            // 2. 既存の副露をMentsuListに追加
-            MentsuList.AddRange(player.Melds);
-
-            // 3. 特殊形の判定
-            if (CheckKokushiMusou(currentHand))
-            {
-                IsWinningHand = true;
-                FormType = WinningFormType.KokushiMusou;
-            }
-            else if (CheckChiitoitsu(currentHand))
-            {
-                IsWinningHand = true;
-                FormType = WinningFormType.Chiitoitsu;
-            }
-            // 4. 通常形（4面子1雀頭）の探索
-            //    副露で確定している牌は手牌に含まれないため、手牌から探索
-            else
-            {
-                List<Tile> remainingHandForAnalysis = new List<Tile>(AnalyzedHand);
-                int requiredMelds = 4 - player.Melds.Count;
-
-                if (remainingHandForAnalysis.Count % 3 == 2 && requiredMelds > 0)
-                {
-                    List<Meld> foundMelds = new List<Meld>();
-                    Tile? foundJantou = null;
-
-                    if (FindStandardHand(remainingHandForAnalysis, requiredMelds, ref foundMelds, ref foundJantou))
-                    {
-                        IsWinningHand = true;
-                        FormType = WinningFormType.Standard;
-                        MentsuList.AddRange(foundMelds);
-                        Jantou = foundJantou;
-
-                        CheckRyanmenMachi(foundMelds, foundJantou, winningTile, isTsumo);
-                    }
-                }
-            }
-        }
-
-        // 全パターン解析用の新しいメソッド (またはコンストラクタ)
-        // 例: 手牌のみを渡して、全ての待ちやシャンテン数を計算する       
-        public HandAnalysisResult(Player player)
-        {
-            _player = player;
-            IsMenzen = player.IsMenzen();
-            AnalyzedHand = SortTiles(new List<Tile>(player.Hand));
 
             // 副露牌を初期の面子として設定
             var initialMelds = new List<Meld>(player.Melds);
@@ -102,6 +50,7 @@ namespace MahjongApp
             FindAllPossibleStandardForms(AnalyzedHand, initialMelds);
             CheckAndAddChiitoitsuPattern(AnalyzedHand);
             CheckAndAddKokushiMusouPattern(AnalyzedHand);
+
         }
 
         /// <summary>
@@ -315,16 +264,6 @@ namespace MahjongApp
             return false;
         }
 
-        private bool CheckChiitoitsu(List<Tile> hand)
-        {
-            if (!IsMenzen || hand.Count != 14) return false;
-
-            var groups = hand.GroupBy(t => $"{t.Suit}_{t.Number}").ToList();
-            if (groups.Count() == 7 && groups.All(g => g.Count() == 2)) return true;
-
-            return false;
-        }
-
         private bool TilesAreEqual(Tile tile1, Tile tile2)
         {
             if (tile1 == null || tile2 == null) return false;
@@ -335,100 +274,6 @@ namespace MahjongApp
             if (tile1 == null || tile2 == null || tile3 == null) return false;
             return tile1.Suit == tile2.Suit && tile1.Suit == tile3.Suit &&
                    tile1.Number == tile2.Number && tile1.Number == tile3.Number;
-        }
-        private bool TilesAreShuntsu(Tile tile1, Tile tile2, Tile tile3)
-        {
-            if (tile1 == null || tile2 == null || tile3 == null) return false;
-            if (tile1.Suit == Suit.Honor || tile2.Suit == Suit.Honor || tile3.Suit == Suit.Honor) return false;
-            if (tile1.Suit != tile2.Suit || tile1.Suit != tile3.Suit) return false;
-
-            var numbers = new List<int> { tile1.Number, tile2.Number, tile3.Number };
-            numbers.Sort();
-            return numbers[0] + 1 == numbers[1] && numbers[1] + 1 == numbers[2];
-        }
-
-        private bool FindStandardHand(List<Tile> hand, int targetMelds, ref List<Meld> currentMelds, ref Tile? jantou)
-        {
-            // バックトラック法を用いて4面子1雀頭を探索
-            //　handはソート済みの手牌リスト
-            if (hand.Count == 0 && targetMelds == 0 && jantou != null) return true;
-            if (hand.Count < 2) return false;
-
-            // 雀頭候補を探す
-            if (jantou == null)
-            {
-                for (int i = 0; i < hand.Count - 1; i++)
-                {
-                    if (TilesAreEqual(hand[i], hand[i + 1]))
-                    {
-                        Tile potentialJantou = hand[i];
-                        List<Tile> remainingHandAfterJantou = new List<Tile>(hand);
-                        remainingHandAfterJantou.RemoveAt(i + 1);
-                        remainingHandAfterJantou.RemoveAt(i);
-                        jantou = potentialJantou;
-                        if (FindStandardHandRecursive(remainingHandAfterJantou, targetMelds, ref currentMelds))
-                        {
-                            return true;
-                        }
-                        jantou = null; // 雀頭候補をリセット
-                    }
-                }
-                return false; // 雀頭候補が見つからなかった場合
-            }
-            else
-            {
-                return FindStandardHandRecursive(hand, targetMelds, ref currentMelds);
-            }
-        }
-        private bool FindStandardHandRecursive(List<Tile> hand, int targetMelds, ref List<Meld> currentMelds)
-        {
-            if (targetMelds == 0) return hand.Count == 0;
-            if (hand.Count < 3 * targetMelds) return false;
-
-            // 面子の候補を探す（刻子優先か順子優先かで結果が変わる場合がある？）
-            // 実際には高い点数を優先する必要があるが，ここでは有効な組み合わせを見つけることを目指す
-
-            if (hand.Count == 0) return targetMelds == 0;
-
-            // 刻子を探す
-            if (hand.Count >= 3 && TilesAreEqual(hand[0], hand[1], hand[2]))
-            {
-                Meld koutsu = new Meld { Type = MeldType.Koutsu, Tiles = new List<Tile> { hand[0], hand[1], hand[2] }, FromPlayerIndex = -1 };
-                currentMelds.Add(koutsu);
-                List<Tile> remainingHandAfterKoutsu = hand.Skip(3).ToList();
-                if (FindStandardHandRecursive(remainingHandAfterKoutsu, targetMelds - 1, ref currentMelds))
-                {
-                    return true;
-                }
-                currentMelds.Remove(koutsu);
-            }
-
-            // 順子を探す
-            if (hand.Count >= 3)
-            {
-                Tile tile1 = hand[0];
-                Tile? tile2 = hand.FirstOrDefault(t => t.Suit == tile1.Suit && t.Number == tile1.Number + 1);
-                if (tile2 != null)
-                {
-                    Tile? tile3 = hand.FirstOrDefault(t => t.Suit == tile1.Suit && t.Number == tile2.Number + 1);
-                    if (tile3 != null)
-                    {
-                        Meld shuntsu = new Meld { Type = MeldType.Shuntsu, Tiles = new List<Tile> { tile1, tile2, tile3 }, FromPlayerIndex = -1 };
-                        currentMelds.Add(shuntsu);
-                        List<Tile> remainingHandAfterShuntsu = new List<Tile>(hand);
-                        remainingHandAfterShuntsu.Remove(tile1);
-                        remainingHandAfterShuntsu.Remove(tile2);
-                        remainingHandAfterShuntsu.Remove(tile3);
-                        if (FindStandardHandRecursive(remainingHandAfterShuntsu, targetMelds - 1, ref currentMelds))
-                        {
-                            return true;
-                        }
-                        currentMelds.Remove(shuntsu);
-                    }
-                }
-            }
-
-            return false;
         }
 
         // CheckRyanmenMachi は、特定の和了牌に対して、それが両面待ちだったかを判定する
@@ -558,6 +403,47 @@ namespace MahjongApp
             List<Tile> waitingTiles = new List<Tile>();
             // 例: waitingTiles.Add(new Tile(Suit.Manzu, 1));
             return waitingTiles;
+        }
+    }
+
+    public class PartialHandState
+    {
+        public int CompletedMelds;
+        public int TaatsuCount;
+        public bool HasJantou;
+        public int FloatingTiles;
+
+        public int CalculateShanten()
+        {
+            int shanten = 8 - CompletedMelds * 2 - TaatsuCount - (HasJantou ? 1 : 0);
+
+            int neededBlocks = 4 - CompletedMelds;
+            int neededTiledForBlocks = neededBlocks * 2;
+        }
+
+        public int CalculateChiitoitsuShanten()
+        {
+            // 七対子のシャンテン数を計算するロジック
+            // 対子の数を数える
+            int pairCount = TaatsuCount;
+            int distinctTiles = FloatingTiles;
+
+            // 七対子のシャンテン数 = 6 - 対子の数 + (7 - 牌の種類数)  (ただし牌の種類数が7未満の場合)
+            // または、必要な対子の数 = 7 - pairCount
+            // 不足している牌の数 = (7 - pairCount) + (pairCount - distinctTilesWhereCountIsOne)
+            int shanten = 6 - pairCount;
+            if (distinctTiles < 7 && pairCount < 7)
+            { // 7種類に足りていない場合、その分も考慮
+                shanten += (7 - distinctTiles);
+            }
+            return shanten < 0 ? 0 : shanten;
+        }
+
+        public int CalculateKokushiMusouShanten()
+        {
+            // 国士無双のシャンテン数を計算するロジック
+            int shanten = 13 -
+            
         }
     }
 }

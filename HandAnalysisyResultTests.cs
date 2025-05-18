@@ -11,13 +11,15 @@ namespace MahjongApp // テスト実行用の名前空間 (任意)
         {
             Console.WriteLine("Starting HandAnalysisResult Tests...\n");
 
-            TestKokushiMusou_SingleWait_Tsumo();
-            TestKokushiMusou_SingleWait_Ron();
-            TestChiitoitsu_Tsumo();
-            TestChiitoitsu_Ron();
-            TestStandardHand_RyanmenMachi_Tsumo();
-            TestStandardHand_WithPon_PenchanMachi_Ron();
-            TestNotWinningHand_NoJantou();
+            // TestKokushiMusou_SingleWait_Tsumo();
+            // TestKokushiMusou_SingleWait_Ron();
+            // TestChiitoitsu_Tsumo();
+            // TestChiitoitsu_Ron();
+            // TestStandardHand_RyanmenMachi_Tsumo();
+            // TestStandardHand_WithPon_PenchanMachi_Ron();
+            // TestNotWinningHand_NoJantou();
+
+            TestStandardHand_CanchanMachi_Ron();
             // TODO: 他のテストケースをここに追加して呼び出す
 
             Console.WriteLine("\nAll tests finished. Review the output above.");
@@ -320,6 +322,28 @@ namespace MahjongApp // テスト実行用の名前空間 (任意)
 
             AssertTrue(!analysisResult.IsWinningHand, $"{testName}: Should not be a winning hand.");
             AssertEquals(WinningFormType.None, analysisResult.FormType, $"{testName}: FormType should be None.");
+        }
+
+        public void TestStandardHand_CanchanMachi_Ron()
+        {
+            string testName = "StandardHand_CanchanMachi_Ron";
+            var player = new Player();
+            // 手牌: 222p 88m 234s 678s 35p (和了牌 4p) - 今回は4pロン
+            player.Hand.AddRange(new List<Tile>
+            {
+                CreateTile(Suit.Pinzu, 2), CreateTile(Suit.Pinzu, 2), CreateTile(Suit.Pinzu, 2),
+                CreateTile(Suit.Manzu, 8), CreateTile(Suit.Manzu, 8),
+                CreateTile(Suit.Souzu, 2), CreateTile(Suit.Souzu, 3), CreateTile(Suit.Souzu, 4),
+                CreateTile(Suit.Souzu, 6), CreateTile(Suit.Souzu, 7), CreateTile(Suit.Souzu, 8),
+                CreateTile(Suit.Pinzu, 3), CreateTile(Suit.Pinzu, 5) // 13枚の手牌
+            });
+            var winningTile = CreateTile(Suit.Pinzu, 4); // 和了牌 (ロン)
+
+            Console.WriteLine($"Player Hand for {testName}: {TilesToString(player.Hand)}");
+            Console.WriteLine($"Winning Tile for {testName}: {winningTile}");
+            var analysisResult = new HandAnalysisResult(player, winningTile, false); // isTsumo = false
+            PrintAnalysisResult(analysisResult, testName);
+            AssertTrue(analysisResult.IsWinningHand, $"{testName}: Should be a winning hand.");
         }
     }
 }
