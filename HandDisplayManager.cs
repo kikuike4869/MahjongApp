@@ -105,6 +105,7 @@ namespace MahjongApp
                     pb.Image = null;
                 }
             }
+            ParentControl.Invalidate();
         }
 
         private Point CalculateTileLocation(int index, int handCount, bool isSelected, bool isTsumoState)
@@ -128,6 +129,8 @@ namespace MahjongApp
                 // 親がGameManagerと連携して判断・処理する。
                 if (selectedTile.IsSelected) // 既に選択されている牌をクリックしたら打牌とする
                 {
+                    selectedTile.IsSelected = false;
+                    RefreshDisplay();
                     OnTileDiscardCallback?.Invoke(selectedTile);
                 }
                 else // 選択されていなければ選択する

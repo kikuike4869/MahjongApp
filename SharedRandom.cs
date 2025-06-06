@@ -16,3 +16,5 @@ namespace MahjongApp
         public static Random Instance => _instance;
     }
 }
+
+

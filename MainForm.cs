@@ -13,7 +13,9 @@ namespace MahjongApp
         private MahjongGameManager gameManager;
         private HandDisplayManager handDisplayManager;
         private DiscardWallDisplayManager discardWallDisplayManager;
-        private GameCenterDisplayManager gameCenterDisplayManager;
+        private GameStatusDisplayManager gameStatusDisplayManager;
+
+        private DoraIndicator? doraIndicator;
 
         // UI Layout Constants (一部は各Managerに渡す)
         private int TileWidth = Config.Instance.TileWidth;
@@ -49,13 +51,14 @@ namespace MahjongApp
                 RefreshHandDisplays,
                 RefreshDiscardWallDisplays,
                 RefreshGameCenterDisplays,
+                RefreshDoraIndicator,
                 EnableHandInteraction
             );
 
             this.FormClosing += MainForm_FormClosing;
         }
 
-        private void MainForm_Load(object sender, EventArgs e)
+        private void MainForm_Load(object? sender, EventArgs e)
         {
             HandStartY = this.ClientSize.Height - TileHeight * 2;
             if (HandStartY < TileHeight) HandStartY = TileHeight + 10;
@@ -77,7 +80,7 @@ namespace MahjongApp
                 DiscardWallStartPositions, DiscardWallRotations
             );
 
-            gameCenterDisplayManager = new GameCenterDisplayManager(
+            gameStatusDisplayManager = new GameStatusDisplayManager(
                 this,
                 () => gameManager.GetSeatWinds(),
                 () => gameManager.GetDealerSeat(),
@@ -86,6 +89,9 @@ namespace MahjongApp
                 () => gameManager.GetRemainingTileCount(),
                 () => gameManager.GetPlayers()
             );
+
+            doraIndicator = new DoraIndicator(this, () => gameManager.GetWall());
+            // Controls.Add(doraIndicator);
 
             // ★変更点: ゲーム開始のトリガー
             gameManager.TriggerStartGameForTest(); // または StartNewGameAsync() を適切に呼び出す
@@ -148,7 +154,17 @@ namespace MahjongApp
                 this.Invoke(new Action(RefreshGameCenterDisplays));
                 return;
             }
-            gameCenterDisplayManager?.RefreshDisplay();
+            gameStatusDisplayManager?.RefreshDisplay();
+        }
+
+        private void RefreshDoraIndicator()
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new Action(RefreshDoraIndicator));
+                return;
+            }
+            doraIndicator?.RefreshDisplay();
         }
 
         // HandDisplayManagerからのコールバック処理
@@ -218,12 +234,12 @@ namespace MahjongApp
         }
 
 
-        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        private void MainForm_FormClosing(object? sender, FormClosingEventArgs e)
         {
             Debug.WriteLine("[UI] Form closing, disposing resources.");
             handDisplayManager?.ClearPictureBoxes();
             discardWallDisplayManager?.ClearPictureBoxes();
-            gameCenterDisplayManager?.ClearControls();
+            gameStatusDisplayManager?.ClearControls();
             TileImageCache.DisposeCache();
         }
     }

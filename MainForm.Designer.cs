@@ -34,6 +34,7 @@ namespace MahjongApp
             this.ClientSize = Config.Instance.ScreenSize;
             this.components = new System.ComponentModel.Container();
             this.BackColor = Color.Green;
+            this.StartPosition = FormStartPosition.CenterScreen;
             // this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.DoubleBuffered = true;
             this.SetStyle(ControlStyles.OptimizedDoubleBuffer, true);

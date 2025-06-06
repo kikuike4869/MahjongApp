@@ -6,8 +6,8 @@ namespace MahjongApp
         static void Main()
         {
             ApplicationConfiguration.Initialize();
-            // Application.Run(new MainForm());
-            new HandAnalysisResultTests().RunAllTests();
+            Application.Run(new MainForm());
+            // new HandAnalysisResultTests().RunAllTests();
         }
     }
 }

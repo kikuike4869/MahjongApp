@@ -29,6 +29,7 @@ namespace MahjongApp
         private Action? _refreshHandDisplayCallback;
         private Action? _refreshDiscardWallDisplayCallback;
         private Action? _refreshGameCenterDisplaysCallback;
+        private Action? _refreshDoraIndicator;
         private Action<bool>? _enableHandInteractionCallback; // 手牌操作の有効/無効
 
         // 人間プレイヤーの打牌を待つためのTaskCompletionSource
@@ -59,11 +60,13 @@ namespace MahjongApp
             Action refreshHandDisplay,
             Action refreshDiscardWallDisplay,
             Action refreshGameCenterDisplays,
+            Action refreshDoraIndicator,
             Action<bool> enableHandInteraction)
         {
             _refreshHandDisplayCallback = refreshHandDisplay;
             _refreshDiscardWallDisplayCallback = refreshDiscardWallDisplay;
             _refreshGameCenterDisplaysCallback = refreshGameCenterDisplays;
+            _refreshDoraIndicator = refreshDoraIndicator;
             _enableHandInteractionCallback = enableHandInteraction;
 
             // TurnManagerにもコールバックを設定
@@ -400,6 +403,7 @@ namespace MahjongApp
             _refreshHandDisplayCallback?.Invoke();
             _refreshDiscardWallDisplayCallback?.Invoke();
             _refreshGameCenterDisplaysCallback?.Invoke();
+            _refreshDoraIndicator?.Invoke();
         }
 
         // --- 各DisplayManagerへの情報提供用ゲッター ---
